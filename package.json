@@ -1,0 +1,19 @@
+{
+  "name": "smartmenu",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "13.4.19",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-data-grid": "^7.0.0-canary.43",
+    "axios": "^1.6.8",
+    "qrcode": "^1.5.1",
+    "uuid": "^9.0.1",
+    "xlsx": "^0.18.5"
+  }
+}
