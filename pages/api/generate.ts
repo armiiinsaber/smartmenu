@@ -22,8 +22,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       {
         role: 'system',
         content:
-          'You are a JSON API. **Return ONLY** a JSON object (no prefixes or explanations). ' +
-          'Format: { "<lang>": [ { "Dish Name": "...", "Description": "...", "Price": "..." }, … ] }'
+          'You are a JSON‐only API. Return nothing but JSON in this exact shape: ' +
+          '{ "<lang>": [ { "Dish Name": "...", "Description": "...", "Price": "..." }, … ] }.'
       },
       {
         role: 'user',
@@ -31,15 +31,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     ]
 
-    // @ts-ignore: bypass SDK overload type issues
+    // @ts-ignore
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4',      // or 'gpt-3.5-turbo'
+      model: 'gpt-3.5-turbo',
       messages,
       temperature: 0
     })
 
     const raw = completion.choices?.[0]?.message?.content?.trim() || ''
-    // Extract only the JSON substring between the first { and last }
     const start = raw.indexOf('{')
     const end = raw.lastIndexOf('}')
     const jsonText = start >= 0 && end >= 0 ? raw.slice(start, end + 1) : raw
