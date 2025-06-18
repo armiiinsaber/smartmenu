@@ -1,0 +1,1 @@
+// UPDATED builder.tsx - Upload, language selection, QR, GPT toggle

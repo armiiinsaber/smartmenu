@@ -1,0 +1,1 @@
+// UPDATED [slug].tsx - Public menu viewer with tabs

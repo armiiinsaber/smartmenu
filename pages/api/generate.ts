@@ -1,0 +1,1 @@
+// UPDATED generate.ts - Translation handler and Supabase writer
