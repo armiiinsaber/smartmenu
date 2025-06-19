@@ -1,9 +1,9 @@
 // File: app/menu/[slug]/page.tsx
-import React from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
+import React from 'react';
 
-// Initialize Supabase client (public key is okay for reads)
+// Initialize Supabase client for reads
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -30,33 +30,17 @@ export default async function MenuPage({ params }: PageProps) {
   }
 
   const { name, translations } = data;
-  const languages = Object.keys(translations) as string[];
-  const [activeLang, setActiveLang] = React.useState(languages[0] || '');
+  const langs = Object.keys(translations) as string[];
 
   return (
     <div style={{ maxWidth: 600, margin: '2rem auto', fontFamily: 'sans-serif' }}>
-      <h1>{name}</h1>
-      <div style={{ marginBottom: '1rem' }}>
-        {languages.map((lang) => (
-          <button
-            key={lang}
-            onClick={() => setActiveLang(lang)}
-            style={{
-              marginRight: '0.5rem',
-              padding: '0.5rem 1rem',
-              background: activeLang === lang ? '#333' : '#eee',
-              color: activeLang === lang ? '#fff' : '#000',
-              border: 'none',
-              borderRadius: 4,
-            }}
-          >
-            {lang}
-          </button>
-        ))}
-      </div>
-      <pre style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-        {translations[activeLang]}
-      </pre>
+      <h1 style={{ textAlign: 'center' }}>{name}</h1>
+      {langs.map((lang) => (
+        <section key={lang} style={{ marginBottom: '2rem' }}>
+          <h2 style={{ borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>{lang}</h2>
+          <pre style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{translations[lang]}</pre>
+        </section>
+      ))}
     </div>
   );
 }
