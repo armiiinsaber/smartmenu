@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import axios from 'axios';
-import QRCode from 'qrcode.react';
 
 export default function BuilderPage() {
   const [rawMenu, setRawMenu] = useState('');
@@ -26,7 +25,6 @@ export default function BuilderPage() {
         name,
         languages
       });
-      // res.data = { slug }
       setSlug(res.data.slug);
     } catch (err) {
       console.error(err);
@@ -35,6 +33,10 @@ export default function BuilderPage() {
       setLoading(false);
     }
   };
+
+  // Determine origin (for Vercel or localhost)
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const menuUrl = slug ? `${origin}/menu/${slug}` : '';
 
   return (
     <div style={{ maxWidth: 600, margin: '2rem auto', fontFamily: 'sans-serif' }}>
@@ -87,7 +89,10 @@ export default function BuilderPage() {
       ) : (
         <div style={{ textAlign: 'center' }}>
           <h2>Your menu is ready!</h2>
-          <QRCode value={`${window.location.origin}/menu/${slug}`} />
+          <img
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(menuUrl)}`}
+            alt="QR Code"
+          />
           <p>
             <a href={`/menu/${slug}`}>View your live menu</a>
           </p>
