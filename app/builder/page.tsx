@@ -9,15 +9,37 @@ export default function BuilderPage() {
   const [languages, setLanguages] = useState<string[]>([]);
   const [slug, setSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Top 20 most-used languages in North America
   const allLanguages = [
-    'English','Spanish','French','Chinese','Arabic','German','Japanese'
+    'English',
+    'Spanish',
+    'French',
+    'Chinese',
+    'Tagalog',
+    'Vietnamese',
+    'Arabic',
+    'Korean',
+    'German',
+    'Russian',
+    'Portuguese',
+    'Hindi',
+    'Italian',
+    'Polish',
+    'Urdu',
+    'Japanese',
+    'Persian',
+    'Dutch',
+    'Greek',
+    'Gujarati'
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setSlug(null);
+    setErrorMsg(null);
 
     try {
       const res = await axios.post('/api/translate', {
@@ -26,9 +48,11 @@ export default function BuilderPage() {
         languages
       });
       setSlug(res.data.slug);
-    } catch (err) {
-      console.error(err);
-      alert('Translation failed. Check console.');
+    } catch (err: any) {
+      console.error('Translate error:', err);
+      const msg = err.response?.data?.error || err.message || 'Unknown error';
+      setErrorMsg(msg);
+      alert(`Translation failed: ${msg}`);
     } finally {
       setLoading(false);
     }
@@ -70,13 +94,17 @@ export default function BuilderPage() {
               const opts = Array.from(e.target.selectedOptions, o => o.value);
               setLanguages(opts);
             }}
-            style={{ width: '100%', height: 120 }}
+            style={{ width: '100%', height: 200 }}
             required
           >
             {allLanguages.map(lang => (
               <option key={lang} value={lang}>{lang}</option>
             ))}
           </select>
+
+          {errorMsg && (
+            <p style={{ color: 'red', marginTop: '0.5rem' }}>{errorMsg}</p>
+          )}
 
           <button
             type="submit"
