@@ -1,4 +1,4 @@
-// app/api/queue/route.ts    (Edge Function)
+// app/api/queue/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Papa from "papaparse";
@@ -16,6 +16,9 @@ export async function POST(req: NextRequest) {
   const title = form.get("title")?.toString().trim() || null;
   const file = form.get("file") as File | null;
 
+  // **LOG IT** so we can see in Vercel logs
+  console.log("[queue] received title:", title);
+
   // 2) parse the CSV if present
   let csvJson: unknown = null;
   if (file) {
@@ -32,7 +35,7 @@ export async function POST(req: NextRequest) {
   const { error } = await supabase.from("menus").insert([
     {
       status: "pending",
-      title,           // ← your new column
+      title,           // ← your new column is here
       json_menu: csvJson,
       review_note: null,
     },
