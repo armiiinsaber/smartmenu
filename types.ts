@@ -1,9 +1,10 @@
-// types.ts
-export interface Menu {
+export type Menu = {
   id: number;
   slug: string;
-  status: "pending" | "approved" | "rejected";
-  link: string | null;
+  title: string | null;     // ← our new field
+  status: 'pending' | 'approved' | 'rejected';
+  json_menu: any;
   review_note: string | null;
+  link: string | null;
   created_at: string;
-}
+};
