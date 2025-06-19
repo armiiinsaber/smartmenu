@@ -4,68 +4,103 @@
 import { useState } from "react";
 import axios from "axios";
 
-export default function Builder() {
-  const [file,   setFile]   = useState<File | null>(null);
-  const [title,  setTitle]  = useState("");
-  const [state,  setState]  = useState<"idle" | "sending" | "done" | "err">("idle");
-  const [msg,    setMsg]    = useState("");
+export default function MenuBuilder() {
+  const [file, setFile] = useState<File | null>(null);
+  const [title, setTitle] = useState("");
+  const [status, setStatus] = useState<"idle" | "uploading" | "done" | "error">(
+    "idle"
+  );
+  const [errMsg, setErrMsg] = useState<string | null>(null);
 
   async function handleSubmit() {
     if (!file || !title.trim()) return;
 
-    setState("sending");
-    const form = new FormData();
-    form.append("file",  file);
-    form.append("title", title.trim());
+    setStatus("uploading");
+    setErrMsg(null);
 
     try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("title", title.trim());
+
       await axios.post("/api/queue", form);
-      setState("done");
-      setMsg("✅ Uploaded. You’ll see it in the dashboard as Pending.");
+      setStatus("done");
       setFile(null);
       setTitle("");
-    } catch (e: any) {
-      setState("err");
-      setMsg("❌ " + (e?.message ?? "Upload failed"));
+    } catch (err) {
+      setStatus("error");
+      setErrMsg(
+        err instanceof Error ? err.message : "Upload failed. Try again."
+      );
     }
   }
 
   return (
-    <main style={{ padding: 40, fontFamily: "system-ui" }}>
+    <main style={{ padding: "4rem", fontFamily: "system-ui", maxWidth: 560 }}>
       <h1>Menu Builder</h1>
 
+      {/* Menu title input */}
       <label>
-        <strong>Menu title&nbsp;(shown in dashboard)</strong><br />
+        <strong>Menu title (shown in dashboard)</strong>
         <input
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          style={{ padding: 8, marginTop: 4, width: 320 }}
+          type="text"
           placeholder="e.g. Luigi Trattoria – Dinner"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          style={{
+            display: "block",
+            width: "100%",
+            margin: "0.5rem 0 1.5rem",
+            padding: "0.5rem",
+            fontSize: 16
+          }}
         />
       </label>
 
-      <div style={{ marginTop: 24 }}>
-        <input
-          type="file"
-          accept=".csv"
-          onChange={e => setFile(e.target.files?.[0] ?? null)}
-        />
-      </div>
+      {/* File picker */}
+      <input
+        type="file"
+        accept=".csv"
+        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+        style={{ marginBottom: "1rem" }}
+      />
 
+      <br />
+
+      {/* Submit button */}
       <button
         onClick={handleSubmit}
-        disabled={!file || !title.trim() || state === "sending"}
+        disabled={status === "uploading" || !file || !title.trim()}
         style={{
-          marginTop: 24,
-          padding: "8px 20px",
-          cursor: "pointer",
-          opacity: (!file || !title.trim()) ? 0.4 : 1
+          padding: "0.5rem 1rem",
+          fontSize: 16,
+          cursor:
+            status === "uploading" || !file || !title.trim()
+              ? "not-allowed"
+              : "pointer",
+          opacity: status === "uploading" || !file || !title.trim() ? 0.5 : 1
         }}
       >
-        {state === "sending" ? "Sending…" : "Send for Review"}
+        {status === "uploading" ? "Uploading…" : "Send for Review"}
       </button>
 
-      {msg && <p style={{ marginTop: 20 }}>{msg}</p>}
+      {/* Success / error messages */}
+      {status === "done" && (
+        <>
+          <p style={{ color: "green", marginTop: "1rem" }}>
+            ✅ Uploaded. You’ll see it in the dashboard as <em>Pending</em>.
+          </p>
+
+          {/* 🚀 Link to dashboard */}
+          <p>
+            <a href="/dashboard">Go to your dashboard →</a>
+          </p>
+        </>
+      )}
+
+      {status === "error" && (
+        <p style={{ color: "red", marginTop: "1rem" }}>❌ {errMsg}</p>
+      )}
     </main>
   );
 }
