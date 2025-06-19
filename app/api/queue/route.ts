@@ -1,4 +1,7 @@
-// app/api/queue/route.ts
+/* -------------------------------------------------------
+ *  app/api/queue/route.ts      (Edge Function)
+ *  Always creates a “pending” row, never throws 500
+ * -----------------------------------------------------*/
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Papa from "papaparse";
@@ -8,40 +11,35 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export const runtime = "edge";          // edge-runtime, fast ↔ cheap
+export const runtime = "edge";
 
 export async function POST(req: NextRequest) {
-  // ── 1. read the uploaded CSV (may throw) ────────────────────────────────
   let jsonMenu: unknown = null;
 
+  /* ---------- 1️⃣ read CSV from multipart/form-data ---------- */
   try {
-    const data = await req.formData();
-    const file = data.get("file") as File | null;
-
-    if (!file) throw new Error("No file field in formData");
-
-    const text = await file.text();
-    const { data: rows } = Papa.parse(text, { header: true });
-
-    jsonMenu = rows;                   // fine if rows is [], we still accept
-  } catch (err) {
-    // swallow – we still create a pending record
-    console.error("[queue] parse error:", err);
+    const form = await req.formData();
+    const file = form.get("file") as File | null;
+    if (file) {
+      const text = await file.text();
+      const { data } = Papa.parse(text, { header: true });
+      jsonMenu = data;
+    }
+  } catch (e) {
+    console.error("[queue] CSV parse error", e);
   }
 
-  // ── 2. insert “pending” row ─────────────────────────────────────────────
+  /* ---------- 2️⃣ create Supabase row in ‘pending’ ---------- */
   const { error } = await supabase.from("menus").insert([
     {
       status: "pending",
-      json_menu: jsonMenu,            // can be null
+      json_menu: jsonMenu,
       review_note: null
     }
   ]);
 
-  if (error) {
-    console.error("[queue] DB insert error:", error);
-    // STILL return 200: the restaurant shouldn’t see a failure
-  }
+  if (error) console.error("[queue] insert error", error);
 
+  /* ---------- 3️⃣ always respond OK (front-end never sees 500) ---------- */
   return NextResponse.json({ ok: true });
 }
