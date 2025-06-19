@@ -1,56 +1,43 @@
 /* -------------------------------------------------------
- *  app/api/queue/route.ts
- *  • Accepts multipart/form-data (CSV file)
- *  • Saves a “pending” menu row in Supabase
- *  • Never throws a 500 to the client
+ *  app/api/queue/route.ts   (Edge Function)
  * -----------------------------------------------------*/
-
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Papa from "papaparse";
-import { randomUUID } from "crypto";          // used for slug
+import { randomUUID } from "crypto";
 
-// ---------- Supabase client ----------
+export const runtime = "edge";
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// ───────────────────────────────────────────────────────────
-//  POST /api/queue
-// ───────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   let csvJson: unknown = null;
-  const slug = randomUUID().slice(0, 8);      // short unique id
 
-  /* ---------- 1️⃣  read CSV from multipart/form-data ---------- */
-  try {
-    const form = await req.formData();
-    const file = form.get("file") as File | null;
+  const form  = await req.formData();
+  const file  = form.get("file")  as File | null;
+  const title = (form.get("title") as string | null)?.trim() || "Untitled menu";
+  const slug  = randomUUID().slice(0, 8);
 
-    if (file) {
+  /* 1️⃣ Parse CSV (if any) */
+  if (file) {
+    try {
       const text = await file.text();
       const { data } = Papa.parse(text, { header: true });
       csvJson = data;
-    } else {
-      console.warn("[queue] no file uploaded");
+    } catch (err) {
+      console.error("[queue] CSV parse error:", err);
     }
-  } catch (err) {
-    console.error("[queue] CSV parse error:", err);
   }
 
-  /* ---------- 2️⃣  create Supabase row (status = pending) ---------- */
+  /* 2️⃣ Insert row */
   const { error } = await supabase.from("menus").insert([
-    {
-      slug,                 // so you can approve & build a link later
-      status: "pending",    // always pending on upload
-      json_menu: csvJson,   // may be null if parsing failed
-      review_note: null
-    }
+    { slug, title, status: "pending", json_menu: csvJson, review_note: null }
   ]);
-
   if (error) console.error("[queue] Supabase insert error:", error);
 
-  /* ---------- 3️⃣  always respond 200 ---------- */
+  /* 3️⃣ Respond */
   return NextResponse.json({ ok: true, slug });
 }
