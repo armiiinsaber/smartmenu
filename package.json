@@ -19,7 +19,8 @@
     "uuid": "9.0.1",
     "xlsx": "0.18.5",
     "openai": "4.11.0",
-    "papaparse": "5.4.1"
+    "papaparse": "5.4.1",
+    "**@supabase/supabase-js**": "2.39.5"
   },
 
   "devDependencies": {
