@@ -1,5 +1,6 @@
 // app/dashboard/page.tsx
-import type { Menu } from "@/types";            // adjust this path if your types live elsewhere
+
+import type { Menu } from "../../types";          // ← point at the new types.ts
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -8,19 +9,17 @@ const supabase = createClient(
 );
 
 export default async function Dashboard() {
-  // pull all menus, newest first
   const { data: menus } = await supabase
-    .from<Menu>("menus")
+    .from("menus")
     .select("*")
     .order("created_at", { ascending: false });
 
-  // little colored dot based on status
-  const chip = (status: string) =>
+  const chip = (status: Menu["status"]) =>
     ({
       pending: "🔵",
       approved: "🟢",
-      rejected: "🟠",
-    } as Record<string, string>)[status] || "❔";
+      rejected: "🟠"
+    }[status] ?? "❔");
 
   return (
     <main style={{ padding: "4rem", fontFamily: "system-ui" }}>
@@ -32,25 +31,23 @@ export default async function Dashboard() {
             <tr style={{ textAlign: "left", borderBottom: "1px solid #ddd" }}>
               <th>Status</th>
               <th>Title</th>
-              <th>Message / Link</th>
+              <th>Link / Review Note</th>
             </tr>
           </thead>
           <tbody>
-            {menus.map((m) => (
+            {menus.map((m: Menu) => (
               <tr key={m.id} style={{ borderBottom: "1px solid #eee" }}>
-                <td>{chip(m.status)} {m.status}</td>
-                <td>{m.title}</td>
+                <td>
+                  {chip(m.status)} <em>{m.status}</em>
+                </td>
+                <td>{m.title || "–"}</td>
                 <td>
                   {m.status === "approved" && m.link ? (
-                    <a 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      href={m.link}
-                    >
+                    <a href={m.link} target="_blank" rel="noopener">
                       View menu
                     </a>
                   ) : (
-                    m.review_note || "—"
+                    m.review_note || "– pending review –"
                   )}
                 </td>
               </tr>
