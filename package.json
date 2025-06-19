@@ -1,27 +1,31 @@
 {
   "name": "smartmenu",
   "version": "1.0.0",
+  "private": true,
+
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start"
   },
+
   "dependencies": {
     "next": "13.4.19",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-data-grid": "^7.0.0-canary.43",
-    "axios": "^1.6.8",
-    "qrcode": "^1.5.1",
-    "uuid": "^9.0.1",
-    "xlsx": "^0.18.5",
-    "openai": "^4.11.0",
-    "@supabase/supabase-js": "^2.43.0",
-    "papaparse": "^5.4.3"          // ← NEW
+    "react-data-grid": "7.0.0-canary.43",
+    "axios": "1.6.8",
+    "qrcode": "1.5.1",
+    "uuid": "9.0.1",
+    "xlsx": "0.18.5",
+    "openai": "4.11.0",
+    "papaparse": "5.4.1"           // <— NEW: CSV parser
   },
+
   "devDependencies": {
-    "typescript": "^5.1.6",
-    "@types/react": "^18.2.14",
-    "@types/node": "^20.2.5"
+    "typescript": "5.1.6",
+    "@types/react": "18.2.14",
+    "@types/node": "20.2.5"
   }
 }
+
