@@ -13,26 +13,9 @@ export default function BuilderPage() {
 
   // Top 20 most-used languages in North America
   const allLanguages = [
-    'English',
-    'Spanish',
-    'French',
-    'Chinese',
-    'Tagalog',
-    'Vietnamese',
-    'Arabic',
-    'Korean',
-    'German',
-    'Russian',
-    'Portuguese',
-    'Hindi',
-    'Italian',
-    'Polish',
-    'Urdu',
-    'Japanese',
-    'Persian',
-    'Dutch',
-    'Greek',
-    'Gujarati'
+    'English','Spanish','French','Chinese','Tagalog','Vietnamese',
+    'Arabic','Korean','German','Russian','Portuguese','Hindi',
+    'Italian','Polish','Urdu','Japanese','Persian','Dutch','Greek','Gujarati'
   ];
 
   const handleCheckbox = (lang: string) => {
@@ -62,9 +45,15 @@ export default function BuilderPage() {
       setSlug(res.data.slug);
     } catch (err: any) {
       console.error('Translate error:', err);
-      const msg = err.response?.data?.error || err.message || 'Unknown error';
-      setErrorMsg(msg);
-      alert(`Translation failed: ${msg}`);
+      // Grab detailed error from server or fallback
+      let msg: any = 
+        err.response?.data?.error ?? 
+        err.response?.data ?? 
+        err.message ?? 
+        'Unknown error';
+      const msgText = typeof msg === 'string' ? msg : JSON.stringify(msg);
+      setErrorMsg(msgText);
+      alert(`Translation failed: ${msgText}`);
     } finally {
       setLoading(false);
     }
@@ -90,7 +79,7 @@ export default function BuilderPage() {
 
           <label>Menu Name:</label>
           <input
-            type='text'
+            type="text"
             value={name}
             onChange={e => setName(e.target.value)}
             style={{ width: '100%' }}
@@ -109,7 +98,7 @@ export default function BuilderPage() {
               <div key={lang} style={{ marginBottom: '0.25rem' }}>
                 <label style={{ cursor: 'pointer' }}>
                   <input
-                    type='checkbox'
+                    type="checkbox"
                     value={lang}
                     checked={languages.includes(lang)}
                     onChange={() => handleCheckbox(lang)}
@@ -126,7 +115,7 @@ export default function BuilderPage() {
           )}
 
           <button
-            type='submit'
+            type="submit"
             disabled={loading}
             style={{ marginTop: '1rem', padding: '0.5rem 1rem' }}
           >
@@ -138,11 +127,9 @@ export default function BuilderPage() {
           <h2>Your menu is ready!</h2>
           <img
             src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(menuUrl)}`}
-            alt='QR Code'
+            alt="QR Code"
           />
-          <p>
-            <a href={`/menu/${slug}`}>View your live menu</a>
-          </p>
+          <p><a href={`/menu/${slug}`}>View your live menu</a></p>
         </div>
       )}
     </div>
