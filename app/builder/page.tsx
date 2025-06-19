@@ -21,9 +21,11 @@ export default function MenuBuilder() {
     try {
       const form = new FormData();
       form.append("file", file);
-      form.append("title", title.trim());         // ← pass the title along
+      form.append("title", title.trim());       // ← we’re sending the human‐friendly title
 
-      await axios.post("/api/queue", form);
+      const { data } = await axios.post("/api/queue", form);
+      console.log("queued with slug:", data.slug);
+
       setStatus("done");
       setFile(null);
       setTitle("");
