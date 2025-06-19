@@ -1,49 +1,53 @@
 // app/dashboard/page.tsx
-import type { Menu } from "../../types";                // <- keep this path
+import type { Menu } from "../../types";     // ← make sure this points at your types file
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  { realtime: { enabled: false } }         // disable WS to avoid bufferutil/utf-8 errors
 );
 
 export default async function Dashboard() {
   const { data: menus } = await supabase
-    .from("menus")
+    .from<Menu>("menus")
     .select("*")
     .order("created_at", { ascending: false });
 
-  const chip = (s: string) =>
-    (
-      {
-        pending:  "🔵",
-        approved: "🟢",
-        rejected: "🟠"
-      } as const
-    )[s as keyof typeof s] ?? "❔";
+  const chip = (status: Menu["status"]) =>
+    status === "pending"   ? "🔵"
+  : status === "approved"  ? "🟢"
+  : status === "rejected"  ? "🟠"
+  : "❔";
 
   return (
     <main style={{ padding: "4rem", fontFamily: "system-ui" }}>
       <h1>Your Menus</h1>
 
-      {menus?.length ? (
+      {menus && menus.length > 0 ? (
         <table cellPadding={12} style={{ borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ textAlign: "left", borderBottom: "1px solid #ddd" }}>
               <th>Status</th>
-              <th>Title</th> {/* <- now shows restaurant-friendly name */}
+              <th>Title</th>
               <th>Message / Link</th>
             </tr>
           </thead>
           <tbody>
-            {menus.map((m: Menu) => (
+            {menus.map((m) => (
               <tr key={m.id} style={{ borderBottom: "1px solid #eee" }}>
-                <td>{chip(m.status)} {m.status}</td>
-                <td>{m.title ?? "Untitled"}</td>
+                <td>
+                  {chip(m.status)} {m.status}
+                </td>
+                <td>{m.title || m.slug}</td>
                 <td>
                   {m.status === "approved" && m.link ? (
-                    <a href={m.link} target="_blank" rel="noopener noreferrer">
-                      View&nbsp;menu
+                    <a
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      href={m.link}
+                    >
+                      View menu
                     </a>
                   ) : (
                     m.review_note || "—"
