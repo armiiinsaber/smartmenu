@@ -11,15 +11,20 @@ const supabase = createClient(
 );
 
 export async function POST(req: NextRequest) {
-  // 1) pull title + file out of the multipart form
+  // 1️⃣ Pull title + file out of the form
   const form = await req.formData();
   const title = form.get("title")?.toString().trim() || null;
   const file = form.get("file") as File | null;
 
-  // **LOG IT** so we can see in Vercel logs
-  console.log("[queue] received title:", title);
+  // 2️⃣ Generate an 8-char slug via Web Crypto
+  const slug =
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID().slice(0, 8)
+      : null;
 
-  // 2) parse the CSV if present
+  console.log("[queue] title:", title, "slug:", slug);
+
+  // 3️⃣ Parse CSV if present
   let csvJson: unknown = null;
   if (file) {
     try {
@@ -31,11 +36,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 3) insert a pending row including the title
+  // 4️⃣ Insert into Supabase (always “pending”)
   const { error } = await supabase.from("menus").insert([
     {
+      slug,
       status: "pending",
-      title,           // ← your new column is here
+      title,
       json_menu: csvJson,
       review_note: null,
     },
@@ -43,6 +49,6 @@ export async function POST(req: NextRequest) {
 
   if (error) console.error("[queue] insert error:", error);
 
-  // 4) always 200 OK
-  return NextResponse.json({ ok: true });
+  // 5️⃣ Always 200 OK back to the client
+  return NextResponse.json({ ok: true, slug });
 }
