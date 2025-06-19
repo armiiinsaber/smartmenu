@@ -1,12 +1,10 @@
 // types.ts
-
-export interface Menu {
+export type Menu = {
   id: number;
-  slug: string;
-  title: string | null;                // the human‐friendly title
+  created_at: string;
+  title: string | null;
   status: "pending" | "approved" | "rejected";
-  link: string | null;                 // published menu URL
-  review_note: string | null;          // reviewer’s comments
-  json_menu: unknown;                  // raw parsed CSV
-  created_at: string;                  // ISO timestamp
-}
+  link?: string | null;
+  review_note?: string | null;
+  json_menu: unknown;
+};
