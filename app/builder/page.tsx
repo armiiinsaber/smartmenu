@@ -1,106 +1,98 @@
-// app/builder/page.tsx
-"use client";
+'use client';
 
-import { useState } from "react";
-import axios from "axios";
+import React, { useState } from 'react';
+import axios from 'axios';
+import QRCode from 'qrcode.react';
 
-export default function MenuBuilder() {
-  const [file, setFile] = useState<File | null>(null);
-  const [title, setTitle] = useState("");
-  const [status, setStatus] = useState<"idle" | "uploading" | "done" | "error">(
-    "idle"
-  );
-  const [errMsg, setErrMsg] = useState<string | null>(null);
+export default function BuilderPage() {
+  const [rawMenu, setRawMenu] = useState('');
+  const [name, setName] = useState('');
+  const [languages, setLanguages] = useState<string[]>([]);
+  const [slug, setSlug] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  async function handleSubmit() {
-    if (!file || !title.trim()) return;
+  const allLanguages = [
+    'English','Spanish','French','Chinese','Arabic','German','Japanese'
+  ];
 
-    setStatus("uploading");
-    setErrMsg(null);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setSlug(null);
 
     try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("title", title.trim());       // ← we’re sending the human‐friendly title
-
-      const { data } = await axios.post("/api/queue", form);
-      console.log("queued with slug:", data.slug);
-
-      setStatus("done");
-      setFile(null);
-      setTitle("");
+      const res = await axios.post('/api/translate', {
+        raw: rawMenu,
+        name,
+        languages
+      });
+      // res.data = { slug }
+      setSlug(res.data.slug);
     } catch (err) {
-      setStatus("error");
-      setErrMsg(
-        err instanceof Error ? err.message : "Upload failed. Try again."
-      );
+      console.error(err);
+      alert('Translation failed. Check console.');
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <main style={{ padding: "4rem", fontFamily: "system-ui", maxWidth: 560 }}>
-      <h1>Menu Builder</h1>
+    <div style={{ maxWidth: 600, margin: '2rem auto', fontFamily: 'sans-serif' }}>
+      {!slug ? (
+        <form onSubmit={handleSubmit}>
+          <h1>Translate Your Menu</h1>
 
-      {/* 1️⃣ Title input */}
-      <label>
-        <strong>Menu title (shown in dashboard)</strong>
-        <input
-          type="text"
-          placeholder="e.g. Luigi Trattoria – Dinner"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          style={{
-            display: "block",
-            width: "100%",
-            margin: "0.5rem 0 1.5rem",
-            padding: "0.5rem",
-            fontSize: 16
-          }}
-        />
-      </label>
+          <label>Menu (paste text or CSV):</label>
+          <textarea
+            value={rawMenu}
+            onChange={e => setRawMenu(e.target.value)}
+            rows={10}
+            style={{ width: '100%' }}
+            required
+          />
 
-      {/* 2️⃣ File picker */}
-      <input
-        type="file"
-        accept=".csv"
-        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-        style={{ marginBottom: "1rem" }}
-      />
+          <label>Menu Name:</label>
+          <input
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            style={{ width: '100%' }}
+            required
+          />
 
-      <br />
+          <label>Target Languages:</label>
+          <select
+            multiple
+            value={languages}
+            onChange={e => {
+              const opts = Array.from(e.target.selectedOptions, o => o.value);
+              setLanguages(opts);
+            }}
+            style={{ width: '100%', height: 120 }}
+            required
+          >
+            {allLanguages.map(lang => (
+              <option key={lang} value={lang}>{lang}</option>
+            ))}
+          </select>
 
-      {/* 3️⃣ Submit button */}
-      <button
-        onClick={handleSubmit}
-        disabled={status === "uploading" || !file || !title.trim()}
-        style={{
-          padding: "0.5rem 1rem",
-          fontSize: 16,
-          cursor:
-            status === "uploading" || !file || !title.trim()
-              ? "not-allowed"
-              : "pointer",
-          opacity: status === "uploading" || !file || !title.trim() ? 0.5 : 1
-        }}
-      >
-        {status === "uploading" ? "Uploading…" : "Send for Review"}
-      </button>
-
-      {/* 4️⃣ Feedback */}
-      {status === "done" && (
-        <>
-          <p style={{ color: "green", marginTop: "1rem" }}>
-            ✅ Uploaded. You’ll see it in the dashboard as <em>Pending</em>.
-          </p>
+          <button
+            type="submit"
+            disabled={loading}
+            style={{ marginTop: '1rem', padding: '0.5rem 1rem' }}
+          >
+            {loading ? 'Translating…' : 'Generate Menu'}
+          </button>
+        </form>
+      ) : (
+        <div style={{ textAlign: 'center' }}>
+          <h2>Your menu is ready!</h2>
+          <QRCode value={`${window.location.origin}/menu/${slug}`} />
           <p>
-            <a href="/dashboard">Go to your dashboard →</a>
+            <a href={`/menu/${slug}`}>View your live menu</a>
           </p>
-        </>
+        </div>
       )}
-
-      {status === "error" && (
-        <p style={{ color: "red", marginTop: "1rem" }}>❌ {errMsg}</p>
-      )}
-    </main>
+    </div>
   );
 }
