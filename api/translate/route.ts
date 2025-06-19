@@ -3,24 +3,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 
-// Use the Supabase service role key for inserts
+// Initialize Supabase
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// Handle CORS preflight requests
+export async function OPTIONS() {
+  return NextResponse.json({}, { status: 200, headers: { Allow: 'POST,OPTIONS' } });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { raw, name, languages } = await req.json();
-    if (!raw || !name || !Array.isArray(languages) || !languages.length) {
+    if (!raw || !name || !Array.isArray(languages) || languages.length === 0) {
       return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
     }
 
-    // Split into non-empty lines and dedupe
+    // Normalize lines and dedupe
     const lines = raw.split(/\r?\n/).filter(Boolean);
     const unique = Array.from(new Set(lines));
 
-    // Translate each line for each language
+    // Fetch translations
     const translations: Record<string, string[]> = {};
     for (const lang of languages) {
       const prompt = `Translate the following menu lines into ${lang}, preserving formatting:\n\n${unique.join('\n')}`;
@@ -40,7 +45,7 @@ export async function POST(req: NextRequest) {
       translations[lang] = text.split(/\r?\n/).map(l => l.trim());
     }
 
-    // Reassemble full translations in original order
+    // Reassemble in original order
     const full: Record<string, string> = {};
     for (const lang of languages) {
       full[lang] = lines
@@ -51,7 +56,7 @@ export async function POST(req: NextRequest) {
         .join('\n');
     }
 
-    // Persist to Supabase
+    // Insert into Supabase
     const slug = uuidv4().slice(0, 8);
     const { error } = await supabase
       .from('menus')
