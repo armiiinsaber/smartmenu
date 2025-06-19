@@ -1,30 +1,32 @@
 // app/dashboard/page.tsx
-import type { Menu } from "../../types";     // ← make sure this points at your types file
+import type { Menu } from "@/types";            // adjust this path if your types live elsewhere
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  { realtime: { enabled: false } }         // disable WS to avoid bufferutil/utf-8 errors
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 export default async function Dashboard() {
+  // pull all menus, newest first
   const { data: menus } = await supabase
     .from<Menu>("menus")
     .select("*")
     .order("created_at", { ascending: false });
 
-  const chip = (status: Menu["status"]) =>
-    status === "pending"   ? "🔵"
-  : status === "approved"  ? "🟢"
-  : status === "rejected"  ? "🟠"
-  : "❔";
+  // little colored dot based on status
+  const chip = (status: string) =>
+    ({
+      pending: "🔵",
+      approved: "🟢",
+      rejected: "🟠",
+    } as Record<string, string>)[status] || "❔";
 
   return (
     <main style={{ padding: "4rem", fontFamily: "system-ui" }}>
       <h1>Your Menus</h1>
 
-      {menus && menus.length > 0 ? (
+      {menus?.length ? (
         <table cellPadding={12} style={{ borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ textAlign: "left", borderBottom: "1px solid #ddd" }}>
@@ -36,15 +38,13 @@ export default async function Dashboard() {
           <tbody>
             {menus.map((m) => (
               <tr key={m.id} style={{ borderBottom: "1px solid #eee" }}>
-                <td>
-                  {chip(m.status)} {m.status}
-                </td>
-                <td>{m.title || m.slug}</td>
+                <td>{chip(m.status)} {m.status}</td>
+                <td>{m.title}</td>
                 <td>
                   {m.status === "approved" && m.link ? (
-                    <a
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <a 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
                       href={m.link}
                     >
                       View menu
