@@ -1,33 +1,28 @@
-// app/builder/page.tsx
 "use client";
 
-import { useState } from "react";
-import Papa from "papaparse";
+/* -------------------------------------------------------
+ *  app/builder/page.tsx
+ *  Single-file uploader ➜ sends to /api/queue
+ * -----------------------------------------------------*/
+import { useState, ChangeEvent } from "react";
+import { useRouter } from "next/navigation";
 import axios from "axios";
 
-export default function BuilderPage() {
+export default function MenuBuilder() {
   const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const router = useRouter();
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSend() {
     if (!file) return;
-
-    setUploading(true);
-    setMessage("");
-
-    const form = new FormData();
-    form.append("file", file);
+    const formData = new FormData();
+    formData.append("file", file);
 
     try {
-      const { data } = await axios.post("/api/queue", form);
-      setMessage(`✅ Uploaded! Menu ID: ${data.id}. It’s now pending review.`);
-    } catch (err: any) {
-      setMessage(`❌ Error: ${err?.response?.data?.error || err.message}`);
-    } finally {
-      setUploading(false);
-      setFile(null);
+      await axios.post("/api/queue", formData);
+      router.push("/dashboard");                // 🚀 go see status
+    } catch (e: any) {
+      setError(`❌ ${e.message || "Upload failed"}`);
     }
   }
 
@@ -35,24 +30,31 @@ export default function BuilderPage() {
     <main style={{ padding: "4rem", fontFamily: "system-ui" }}>
       <h1>Menu Builder</h1>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          required
-          type="file"
-          accept=".csv,.txt"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
-        />
+      <input
+        type="file"
+        accept=".csv"
+        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+          setFile(e.target.files?.[0] || null)
+        }
+      />
 
-        <button
-          style={{ marginLeft: 12 }}
-          disabled={!file || uploading}
-          type="submit"
-        >
-          {uploading ? "Uploading…" : "Send for Review"}
-        </button>
-      </form>
+      <button
+        style={{
+          marginLeft: "1rem",
+          padding: "0.5rem 1rem",
+          cursor: file ? "pointer" : "not-allowed"
+        }}
+        disabled={!file}
+        onClick={handleSend}
+      >
+        Send for Review
+      </button>
 
-      {message && <p style={{ marginTop: 24 }}>{message}</p>}
+      {error && (
+        <p style={{ color: "crimson", marginTop: "2rem", fontWeight: 600 }}>
+          {error}
+        </p>
+      )}
     </main>
   );
 }
