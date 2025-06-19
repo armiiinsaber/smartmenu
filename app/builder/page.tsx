@@ -21,7 +21,7 @@ export default function MenuBuilder() {
     try {
       const form = new FormData();
       form.append("file", file);
-      form.append("title", title.trim());
+      form.append("title", title.trim());         // ← pass the title along
 
       await axios.post("/api/queue", form);
       setStatus("done");
@@ -39,7 +39,7 @@ export default function MenuBuilder() {
     <main style={{ padding: "4rem", fontFamily: "system-ui", maxWidth: 560 }}>
       <h1>Menu Builder</h1>
 
-      {/* Menu title input */}
+      {/* 1️⃣ Title input */}
       <label>
         <strong>Menu title (shown in dashboard)</strong>
         <input
@@ -57,7 +57,7 @@ export default function MenuBuilder() {
         />
       </label>
 
-      {/* File picker */}
+      {/* 2️⃣ File picker */}
       <input
         type="file"
         accept=".csv"
@@ -67,7 +67,7 @@ export default function MenuBuilder() {
 
       <br />
 
-      {/* Submit button */}
+      {/* 3️⃣ Submit button */}
       <button
         onClick={handleSubmit}
         disabled={status === "uploading" || !file || !title.trim()}
@@ -84,14 +84,12 @@ export default function MenuBuilder() {
         {status === "uploading" ? "Uploading…" : "Send for Review"}
       </button>
 
-      {/* Success / error messages */}
+      {/* 4️⃣ Feedback */}
       {status === "done" && (
         <>
           <p style={{ color: "green", marginTop: "1rem" }}>
             ✅ Uploaded. You’ll see it in the dashboard as <em>Pending</em>.
           </p>
-
-          {/* 🚀 Link to dashboard */}
           <p>
             <a href="/dashboard">Go to your dashboard →</a>
           </p>
