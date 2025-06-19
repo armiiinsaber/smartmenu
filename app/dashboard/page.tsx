@@ -1,5 +1,5 @@
 // app/dashboard/page.tsx
-import type { Menu } from "@/types";
+import type { Menu } from "../../types";            // ← fixed path
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -41,7 +41,7 @@ export default async function Dashboard() {
                 <td>
                   {m.status === "approved" && m.link ? (
                     <a target="_blank" rel="noopener noreferrer" href={m.link}>
-                      View&nbsp;menu
+                      View menu
                     </a>
                   ) : (
                     m.review_note || "—"
