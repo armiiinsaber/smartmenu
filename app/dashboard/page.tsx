@@ -1,5 +1,5 @@
 // app/dashboard/page.tsx
-import type { Menu } from "../../types";            // ← fixed path
+import type { Menu } from "../../types";                // <- keep this path
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -13,12 +13,14 @@ export default async function Dashboard() {
     .select("*")
     .order("created_at", { ascending: false });
 
-  const chip = (status: string) =>
-    ({
-      pending: "🔵",
-      approved: "🟢",
-      rejected: "🟠"
-    } as const)[status as keyof typeof status] || "❔";
+  const chip = (s: string) =>
+    (
+      {
+        pending:  "🔵",
+        approved: "🟢",
+        rejected: "🟠"
+      } as const
+    )[s as keyof typeof s] ?? "❔";
 
   return (
     <main style={{ padding: "4rem", fontFamily: "system-ui" }}>
@@ -29,7 +31,7 @@ export default async function Dashboard() {
           <thead>
             <tr style={{ textAlign: "left", borderBottom: "1px solid #ddd" }}>
               <th>Status</th>
-              <th>Slug</th>
+              <th>Title</th> {/* <- now shows restaurant-friendly name */}
               <th>Message / Link</th>
             </tr>
           </thead>
@@ -37,11 +39,11 @@ export default async function Dashboard() {
             {menus.map((m: Menu) => (
               <tr key={m.id} style={{ borderBottom: "1px solid #eee" }}>
                 <td>{chip(m.status)} {m.status}</td>
-                <td>{m.slug}</td>
+                <td>{m.title ?? "Untitled"}</td>
                 <td>
                   {m.status === "approved" && m.link ? (
-                    <a target="_blank" rel="noopener noreferrer" href={m.link}>
-                      View menu
+                    <a href={m.link} target="_blank" rel="noopener noreferrer">
+                      View&nbsp;menu
                     </a>
                   ) : (
                     m.review_note || "—"
