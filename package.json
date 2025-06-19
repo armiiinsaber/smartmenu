@@ -19,7 +19,7 @@
     "uuid": "9.0.1",
     "xlsx": "0.18.5",
     "openai": "4.11.0",
-    "papaparse": "5.4.1"           // <— NEW: CSV parser
+    "papaparse": "5.4.1"
   },
 
   "devDependencies": {
@@ -28,4 +28,3 @@
     "@types/node": "20.2.5"
   }
 }
-
