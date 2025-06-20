@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
+// Supabase client for server-side fetch
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -19,75 +20,82 @@ export default async function MenuPage({ params }: PageProps) {
     .eq('slug', slug)
     .single();
 
-  if (error || !data) {
-    notFound();
-  }
+  if (error || !data) notFound();
 
   const { name, translations } = data;
   const langs = Object.keys(translations) as string[];
-  const defaultLang = langs.includes('English') ? 'English' : langs[0];
 
   return (
     <html lang="en">
-      <body style={{ fontFamily: 'Helvetica Neue, sans-serif', padding: '2rem', backgroundColor: '#fff', color: '#111' }}>
-        <div style={{ maxWidth: 800, margin: '0 auto' }}>
-          <h1 style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '1.5rem' }}>{name}</h1>
-
-          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            {langs.map((lang) => (
-              <button
-                key={lang}
-                onClick={() => {
-                  const sections = document.querySelectorAll('[data-lang]');
-                  sections.forEach(sec => (sec as HTMLElement).style.display = 'none');
-                  const target = document.querySelector(`[data-lang="${lang}"]`) as HTMLElement;
-                  if (target) target.style.display = 'block';
-                }}
-                style={{
-                  margin: '0.3rem',
-                  padding: '0.5rem 1rem',
-                  backgroundColor: '#eee',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer'
-                }}
-              >
-                {lang}
-              </button>
-            ))}
-          </div>
-
-          {langs.map((lang) => (
-            <section
-              key={lang}
-              data-lang={lang}
-              style={{ display: lang === defaultLang ? 'block' : 'none' }}
-            >
-              <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 1rem' }}>
-                <thead>
-                  <tr style={{ textAlign: 'left', fontSize: '1rem', borderBottom: '2px solid #ccc' }}>
-                    <th style={{ width: '35%' }}>Dish</th>
-                    <th style={{ width: '50%' }}>Description</th>
-                    <th style={{ width: '15%', textAlign: 'right' }}>Price</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {translations[lang].split(/\n+/).map((line, idx) => {
-                    const [dish, description, price] = line.split(/\s*[|–]\s*/);
-                    return (
-                      <tr key={idx} style={{ backgroundColor: '#f9f9f9', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                        <td style={{ padding: '0.75rem', fontWeight: 600 }}>{dish}</td>
-                        <td style={{ padding: '0.75rem' }}>{description}</td>
-                        <td style={{ padding: '0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>{price}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </section>
+      <head>
+        <title>{name} | Menu</title>
+        <style>{`
+          body { font-family: 'Georgia', serif; padding: 2rem; max-width: 700px; margin: auto; }
+          h1 { text-align: center; margin-bottom: 2rem; }
+          .lang-switcher { text-align: center; margin-bottom: 2rem; }
+          .lang-switcher button {
+            margin: 0.3rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            background: #eee;
+            cursor: pointer;
+            border-radius: 4px;
+          }
+          .menu-section { display: none; }
+          .menu-section.active { display: block; }
+          table { width: 100%; border-collapse: collapse; }
+          th { text-align: left; border-bottom: 1px solid #999; padding: 0.5rem 0; }
+          td { padding: 0.4rem 0; vertical-align: top; }
+          td.price { text-align: right; white-space: nowrap; }
+        `}</style>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            window.onload = () => {
+              const buttons = document.querySelectorAll('button[data-lang]');
+              buttons.forEach(btn => {
+                btn.onclick = () => {
+                  document.querySelectorAll('.menu-section').forEach(el => el.classList.remove('active'));
+                  document.getElementById('lang-' + btn.dataset.lang)?.classList.add('active');
+                };
+              });
+              document.getElementById('lang-English')?.classList.add('active');
+            };
+          `,
+        }} />
+      </head>
+      <body>
+        <h1>{name}</h1>
+        <div className="lang-switcher">
+          {langs.map(lang => (
+            <button key={lang} data-lang={lang}>{lang}</button>
           ))}
         </div>
+
+        {langs.map(lang => (
+          <section key={lang} id={`lang-${lang}`} className="menu-section">
+            <table>
+              <thead>
+                <tr>
+                  <th>Dish</th>
+                  <th>Description</th>
+                  <th className="price">Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                {translations[lang].split(/\n/).map((line, idx) => {
+                  const [dish = '', description = '', price = ''] = line.split('|').map(s => s.trim());
+                  return (
+                    <tr key={idx}>
+                      <td>{dish}</td>
+                      <td>{description}</td>
+                      <td className="price">{price}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </section>
+        ))}
       </body>
     </html>
   );
