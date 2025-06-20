@@ -1,145 +1,113 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function BuilderPage() {
-  const [rawMenu, setRawMenu] = useState('');
-  const [name, setName] = useState('');
-  const [languages, setLanguages] = useState<string[]>([]);
-  const [slug, setSlug] = useState<string | null>(null);
+  const [restaurantName, setRestaurantName] = useState('');
+  const [menuText, setMenuText] = useState('');
+  const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [menuUrl, setMenuUrl] = useState('');
-
-  // Top 20 most-used languages in North America
-  const allLanguages = [
-    'English','Spanish','French','Chinese','Tagalog','Vietnamese',
-    'Arabic','Korean','German','Russian','Portuguese','Hindi',
-    'Italian','Polish','Urdu','Japanese','Persian','Dutch',
-    'Greek','Gujarati'
-  ];
-
-  const handleCheckbox = (lang: string) => {
-    setLanguages(prev =>
-      prev.includes(lang) ? prev.filter(l => l !== lang) : [...prev, lang]
-    );
-  };
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rawMenu.trim() || !name.trim() || languages.length === 0) {
-      setErrorMsg('Please fill all fields and select at least one language.');
+    setLoading(true);
+
+    if (!restaurantName.trim() || !menuText.trim() || selectedLangs.length === 0) {
+      alert('Please fill all fields and select at least one language.');
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-    setSlug(null);
-    setErrorMsg(null);
-
     try {
-      // 🔥 YOUR REAL TRANSLATION CALL HERE instead of this stub:
-      // const res = await fetch('/api/translate', { … })
-      // const { slug: newSlug } = await res.json();
+      const res = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurantName,
+          menuText,
+          targetLangs: selectedLangs,
+        }),
+      });
 
-      // demo stub for slug:
-      await new Promise(res => setTimeout(res, 1000));
-      const newSlug = uuidv4().slice(0, 8);
-      setSlug(newSlug);
+      const text = await res.text();
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        alert(text);
+        setLoading(false);
+        return;
+      }
+
+      if (data.slug) {
+        router.push(`/qr/${data.slug}`);
+      } else {
+        alert(data.error || 'Server error');
+      }
     } catch (err: any) {
-      console.error('Translate error:', err);
-      setErrorMsg('Translation failed. Please try again.');
+      alert(err.message || 'Network or server error');
     } finally {
       setLoading(false);
     }
   };
 
-  // ✨ Build the FULL URL after we have a slug
-  useEffect(() => {
-    if (slug) {
-      const origin = window.location.origin; 
-      setMenuUrl(`${origin}/menu/${slug}`);
-    }
-  }, [slug]);
-
   return (
-    <div style={{ maxWidth: 600, margin: '2rem auto', fontFamily: 'sans-serif' }}>
-      {!slug ? (
-        <form onSubmit={handleSubmit}>
-          <h1>Translate Your Menu</h1>
+    <div className="min-h-screen bg-white px-4 py-10 flex flex-col items-center justify-start">
+      <h1 className="text-2xl font-bold mb-6 text-center">Upload Your Menu</h1>
 
-          <label>Menu (paste text or CSV):</label>
-          <textarea
-            value={rawMenu}
-            onChange={e => setRawMenu(e.target.value)}
-            rows={8}
-            style={{ width: '100%', marginBottom: '0.5rem' }}
-            required
-          />
+      <form onSubmit={handleSubmit} className="w-full max-w-md space-y-4">
+        <input
+          type="text"
+          placeholder="Restaurant Name"
+          value={restaurantName}
+          onChange={(e) => setRestaurantName(e.target.value)}
+          className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black shadow-sm"
+          disabled={loading}
+          required
+        />
 
-          <label>Restaurant Name:</label>
-          <input
-            type="text"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            style={{ width: '100%', marginBottom: '0.5rem' }}
-            required
-          />
+        <textarea
+          placeholder="Paste your menu here..."
+          value={menuText}
+          onChange={(e) => setMenuText(e.target.value)}
+          rows={6}
+          className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black shadow-sm resize-none"
+          disabled={loading}
+          required
+        />
 
-          <label>Target Languages:</label>
-          <div style={{
-            border: '1px solid #ccc', borderRadius: 4,
-            padding: '0.5rem', maxHeight: 200, overflowY: 'auto',
-            marginBottom: '0.5rem'
-          }}>
-            {allLanguages.map(lang => (
-              <div key={lang} style={{ marginBottom: '.25rem' }}>
-                <label style={{ cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={languages.includes(lang)}
-                    onChange={() => handleCheckbox(lang)}
-                    style={{ marginRight: '.5rem' }}
-                  />
-                  {lang}
-                </label>
-              </div>
-            ))}
-          </div>
-
-          {errorMsg && <p style={{ color: 'red' }}>{errorMsg}</p>}
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              marginTop: '1rem', padding: '.5rem 1rem',
-              background: '#000', color: '#fff', border: 'none',
-              borderRadius: 4, cursor: 'pointer'
-            }}
-          >
-            {loading ? 'Generating…' : 'Generate QR Code'}
-          </button>
-        </form>
-      ) : (
-        <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-          <h2>Your Menu QR Code</h2>
-          {menuUrl && (
-            <>
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(menuUrl)}`}
-                alt="QR Code"
-                style={{ background: '#fff', padding: '1rem' }}
+        <div className="grid grid-cols-2 gap-2">
+          {['en', 'fr', 'es', 'de', 'fa', 'zh'].map((lang) => (
+            <label key={lang} className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                value={lang}
+                checked={selectedLangs.includes(lang)}
+                onChange={() =>
+                  setSelectedLangs((prev) =>
+                    prev.includes(lang)
+                      ? prev.filter((l) => l !== lang)
+                      : [...prev, lang]
+                  )
+                }
+                className="h-4 w-4"
+                disabled={loading}
               />
-              <p style={{ marginTop: '1rem', wordBreak: 'break-all' }}>
-                <a href={menuUrl} target="_blank" rel="noreferrer">
-                  {menuUrl}
-                </a>
-              </p>
-            </>
-          )}
+              <span className="capitalize">{lang}</span>
+            </label>
+          ))}
         </div>
-      )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-3 bg-black text-white rounded-2xl font-medium hover:bg-gray-900 transition disabled:opacity-50"
+        >
+          {loading ? 'Translating...' : 'Submit'}
+        </button>
+      </form>
     </div>
   );
 }
