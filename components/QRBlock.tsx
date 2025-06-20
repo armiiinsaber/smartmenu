@@ -7,12 +7,11 @@ export default function QRBlock({ slug }: { slug: string }) {
   const [url, setUrl] = useState('');
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && slug) {
+    if (typeof window !== 'undefined') {
       setUrl(`${window.location.origin}/menu/${slug}`);
     }
   }, [slug]);
 
-  // Use the free QR-Server API (no extra deps)
   const qrSrc = url
     ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
         url
@@ -20,36 +19,19 @@ export default function QRBlock({ slug }: { slug: string }) {
     : '';
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        margin: '2rem 0',
-      }}
-    >
+    <div className="flex flex-col items-center space-y-2">
       {qrSrc && (
         <>
           <img
             src={qrSrc}
             alt="QR Code"
-            style={{
-              background: '#fff',
-              padding: '1rem',
-              borderRadius: '8px',
-            }}
+            className="bg-white p-4 rounded-lg"
           />
           <a
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            style={{
-              marginTop: '0.75rem',
-              wordBreak: 'break-all',
-              textDecoration: 'none',
-              color: '#000',
-              fontSize: '0.9rem',
-            }}
+            className="text-sm text-gray-800 break-all"
           >
             Open menu: {url}
           </a>
