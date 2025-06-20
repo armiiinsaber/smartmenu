@@ -1,26 +1,30 @@
-// app/menu/[slug]/page.tsx
-import { notFound } from 'next/navigation'
-import { menuStore, MenuData } from '../../../lib/menuStore'
+'use client'
 
-interface PageProps {
-  params: { slug: string }
-}
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 
-export default function MenuPage({ params: { slug } }: PageProps) {
-  // look up the menu in our in-memory store
-  const data: MenuData | undefined = menuStore.get(slug)
+export default function MenuPage() {
+  const { slug } = useParams()
+  const [translations, setTranslations] = useState<Record<string,string> | null>(null)
+  const [restaurantName, setRestaurantName] = useState('')
 
-  if (!data) {
-    // if it doesn’t exist, render the built-in 404
-    notFound()
+  useEffect(() => {
+    if (!slug) return
+    const raw = sessionStorage.getItem(`menu-${slug}`)
+    if (raw) {
+      const data = JSON.parse(raw) as Record<string,string>
+      setTranslations(data)
+      // optionally set a name header if you passed it too
+      // setRestaurantName(data.restaurantName)
+    }
+  }, [slug])
+
+  if (!translations) {
+    return <p className="p-6 text-center">Menu not found or session expired.</p>
   }
-
-  const { restaurantName, translations } = data
 
   return (
     <div className="min-h-screen bg-white p-6">
-      <h1 className="text-3xl font-bold mb-4">{restaurantName}</h1>
-
       {Object.entries(translations).map(([lang, text]) => (
         <section key={lang} className="mb-8">
           <h2 className="text-2xl font-semibold capitalize mb-2">{lang}</h2>
