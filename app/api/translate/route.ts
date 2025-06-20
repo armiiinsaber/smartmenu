@@ -10,6 +10,22 @@ function generateSlug() {
   return Math.random().toString(36).substring(2, 8);
 }
 
+export async function GET() {
+  // Health check for translate endpoint
+  return NextResponse.json({ status: 'ok', message: 'Translate endpoint active' });
+}
+
+export async function OPTIONS() {
+  return NextResponse.json({}, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    }
+  });
+}
+
 export async function POST(request: Request) {
   const { restaurantName, text, languages } = await request.json() as {
     restaurantName: string;
