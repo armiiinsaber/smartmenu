@@ -6,32 +6,15 @@ import OpenAI from 'openai';
 const openai = new OpenAI();
 
 // Simple slug generator
-function generateSlug() {
-  return Math.random().toString(36).substring(2, 8);
-}
-
-export async function GET() {
-  // Health check for translate endpoint
-  return NextResponse.json({ status: 'ok', message: 'Translate endpoint active' });
-}
-
-export async function OPTIONS() {
-  return NextResponse.json({}, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
-    }
-  });
-}
+const generateSlug = () => Math.random().toString(36).substring(2, 8);
 
 export async function POST(request: Request) {
-  const { restaurantName, text, languages } = await request.json() as {
-    restaurantName: string;
-    text: string;
-    languages: string[];
-  };
+  const { restaurantName, text, languages } =
+    (await request.json()) as {
+      restaurantName: string;
+      text: string;
+      languages: string[];
+    };
 
   const slug = generateSlug();
   const translations: Record<string, string> = {};
@@ -60,8 +43,7 @@ export async function POST(request: Request) {
       });
 
       const choice = completion.choices?.[0];
-      const content = choice?.message?.content ?? '';
-      translations[lang] = content.trim();
+      translations[lang] = (choice?.message?.content ?? '').trim();
     })
   );
 
