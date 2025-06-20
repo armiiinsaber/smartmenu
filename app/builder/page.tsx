@@ -5,7 +5,7 @@ import { useState } from 'react'
 export default function BuilderPage() {
   const [restaurantName, setRestaurantName] = useState('')
   const [menuText, setMenuText] = useState('')
-  const [selectedLang, setSelectedLang] = useState('en')
+  const [selectedLangs, setSelectedLangs] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
