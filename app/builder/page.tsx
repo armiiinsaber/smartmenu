@@ -28,7 +28,20 @@ export default function BuilderPage() {
           targetLangs: selectedLangs,
         }),
       })
-      const data = await res.json()
+
+      // read raw text to avoid JSON parse crashes
+      const text = await res.text()
+
+      // try JSON.parse, otherwise show raw text
+      let data: any
+      try {
+        data = JSON.parse(text)
+      } catch (err) {
+        console.error('Non-JSON response from /api/translate:', text)
+        alert(text)
+        setLoading(false)
+        return
+      }
 
       if (data.slug && data.translations) {
         sessionStorage.setItem(
@@ -40,8 +53,8 @@ export default function BuilderPage() {
         )
         window.location.href = `/menu/${data.slug}`
       } else {
-        console.error('API returned error payload:', data)
-        alert(data.error || 'Unknown error from server')
+        console.error('Error JSON from /api/translate:', data)
+        alert(data.error || JSON.stringify(data))
       }
     } catch (err: any) {
       console.error('Fetch failed:', err)
