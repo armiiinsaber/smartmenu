@@ -41,7 +41,13 @@ export default function BuilderPage() {
       }
 
       // Redirect automatically when ready
-      router.push(`/menu/${payload.slug}`);
+      // Persist into sessionStorage for menu page
+sessionStorage.setItem(
+  `menu-${payload.slug}`,
+  JSON.stringify({ restaurantName: payload.restaurantName, translations: payload.translations })
+);
+// Navigate to menu display
+router.push(`/menu/${payload.slug}`);
     } catch (error: any) {
       alert(`Network error: ${error.message || error}`);
       setLoading(false);
