@@ -1,10 +1,14 @@
-// pages/api/translate.ts
-
+// File: pages/api/translate.ts
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { v4 as uuid } from 'uuid'
 import { OpenAI } from 'openai'
+import { createClient } from '@supabase/supabase-js'
 
 const openai = new OpenAI()
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export default async function handler(
   req: NextApiRequest,
@@ -28,7 +32,6 @@ export default async function handler(
   }
 
   try {
-    // Build an array of promises for each language
     const translatePromises = targetLangs.map(async (lang: string) => {
       const aiRes = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -40,21 +43,32 @@ export default async function handler(
           { role: 'user', content: menuText },
         ],
       })
-      // coalesce null => ''
-      const text = aiRes.choices[0].message.content ?? ''
+      const text = aiRes.choices?.[0]?.message?.content ?? ''
       return { lang, text }
     })
 
-    // Run all translations in parallel
     const results = await Promise.all(translatePromises)
 
-    // Reduce into a map
     const translations: Record<string, string> = {}
     for (const { lang, text } of results) {
       translations[lang] = text
     }
 
     const slug = uuid().split('-')[0]
+
+    const { error } = await supabase
+      .from('menus')
+      .insert({
+        slug,
+        title: restaurantName,
+        translations,
+        status: 'approved',
+        created_at: new Date(),
+      })
+
+    if (error) {
+      return res.status(500).json({ error: 'Database insert failed' })
+    }
 
     return res.status(200).json({ slug, translations })
   } catch (err) {
