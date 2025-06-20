@@ -1,24 +1,35 @@
+// File: app/qr/[slug]/page.tsx
 'use client';
 
 import React from 'react';
 import { useParams } from 'next/navigation';
-import QRBlock from '../../../components/QRBlock';
+import QRBlock from '../../../components/QRBlock'; // ← relative path from here
 
 export default function QRPage() {
-  const params = useParams() as { slug?: string };
-  const slug = params.slug;
+  const { slug } = useParams() as { slug?: string };
+
   if (!slug) {
     return (
-      <p style={{ textAlign: 'center', marginTop: '2rem', fontFamily: 'sans-serif' }}>
-        ⚠️ Invalid QR code
-      </p>
+      <div style={{ textAlign: 'center', marginTop: '2rem', fontFamily: 'sans-serif' }}>
+        ⚠️ Invalid or missing code
+      </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 600, margin: '2rem auto', fontFamily: 'sans-serif' }}>
-      <h1 style={{ textAlign: 'center', marginBottom: '1rem' }}>Scan to View Menu</h1>
+    <main
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: 'sans-serif',
+        padding: '1rem',
+      }}
+    >
+      <h1 style={{ marginBottom: '1rem' }}>Scan to View Menu</h1>
       <QRBlock slug={slug} />
-    </div>
+    </main>
   );
 }
