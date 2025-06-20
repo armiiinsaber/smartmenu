@@ -1,7 +1,8 @@
+// pages/api/translate.ts
+
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { v4 as uuid } from 'uuid'
 import { OpenAI } from 'openai'
-import { menuStore, MenuData } from '../../lib/menuStore'
 
 const openai = new OpenAI()
 
@@ -15,6 +16,7 @@ export default async function handler(
 
   try {
     const { restaurantName, menuText, targetLangs } = req.body
+
     if (
       !restaurantName ||
       !menuText ||
@@ -27,29 +29,30 @@ export default async function handler(
     }
 
     // Translate each language
-    const translations: Record<string,string> = {}
+    const translations: Record<string, string> = {}
     for (const lang of targetLangs) {
       const aiRes = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
-            content: `Translate this menu into ${lang}, preserving formatting and prices.`,
+            content: `Translate this restaurant menu into ${lang}, preserving formatting and prices exactly as written.`,
           },
           { role: 'user', content: menuText },
         ],
       })
+
+      // content can be null, so coalesce to empty string
       translations[lang] = aiRes.choices[0].message.content ?? ''
     }
 
+    // Generate a slug (for client‐side routing only)
     const slug = uuid().split('-')[0]
-    // store for later
-    const data: MenuData = { restaurantName, translations }
-    menuStore.set(slug, data)
 
-    return res.status(200).json({ slug })
+    // Return BOTH slug and translations
+    return res.status(200).json({ slug, translations })
   } catch (err) {
-    console.error(err)
+    console.error('Translate API error:', err)
     return res.status(500).json({ error: 'Internal server error' })
   }
 }
