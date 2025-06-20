@@ -8,54 +8,37 @@ export default function BuilderPage() {
   const [selectedLangs, setSelectedLangs] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
-  setLoading(true)
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setLoading(true)
 
-  if (!restaurantName || !menuText || selectedLangs.length === 0) {
-    alert('Please fill all fields and select at least one language.')
-    setLoading(false)
-    return
-  }
-
-  try {
-    const res = await fetch('/api/translate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        restaurantName,
-        menuText,
-        targetLangs: selectedLangs,
-      }),
-    })
-
-    const data = await res.json()
-
-    if (data?.slug) {
-      window.location.href = `/menu/${data.slug}`
-    } else {
-      console.log('API error:', data)
-      alert('Something went wrong.')
+    if (!restaurantName.trim() || !menuText.trim() || selectedLangs.length === 0) {
+      alert('Please fill all fields and select at least one language.')
+      setLoading(false)
+      return
     }
-  } catch (err) {
-    console.error('Submit failed:', err)
-    alert('An error occurred.')
-  } finally {
-    setLoading(false)
-  }
-}
 
-
+    try {
+      const res = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurantName,
+          menuText,
+          targetLangs: selectedLangs,
+        }),
+      })
       const data = await res.json()
 
-      if (data?.slug) {
+      if (data.slug) {
         window.location.href = `/menu/${data.slug}`
       } else {
+        console.log('API error:', data)
         alert('Something went wrong.')
       }
     } catch (err) {
-      console.error(err)
-      alert('An error occurred while submitting.')
+      console.error('Submit failed:', err)
+      alert('An error occurred.')
     } finally {
       setLoading(false)
     }
@@ -82,32 +65,29 @@ export default function BuilderPage() {
           className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black shadow-sm resize-none"
         />
 
-      <div className="grid grid-cols-2 gap-2">
-  {['en', 'fr', 'es', 'de', 'fa', 'zh'].map((lang) => (
-    <label key={lang} className="flex items-center space-x-2">
-      <input
-        type="checkbox"
-        name="language"
-        value={lang}
-        checked={selectedLangs.includes(lang)}
-        onChange={() => {
-          if (selectedLangs.includes(lang)) {
-            setSelectedLangs(selectedLangs.filter((l) => l !== lang))
-          } else {
-            setSelectedLangs([...selectedLangs, lang])
-          }
-        }}
-      />
-      <span className="capitalize">{lang}</span>
-    </label>
-  ))}
-</div>
-
+        <div className="grid grid-cols-2 gap-2">
+          {['en', 'fr', 'es', 'de', 'fa', 'zh'].map((lang) => (
+            <label key={lang} className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                value={lang}
+                checked={selectedLangs.includes(lang)}
+                onChange={() =>
+                  setSelectedLangs((prev) =>
+                    prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
+                  )
+                }
+                className="h-4 w-4"
+              />
+              <span className="capitalize">{lang}</span>
+            </label>
+          ))}
+        </div>
 
         <button
           type="submit"
-          className="w-full py-3 bg-black text-white rounded-2xl font-medium hover:bg-gray-900 transition"
           disabled={loading}
+          className="w-full py-3 bg-black text-white rounded-2xl font-medium hover:bg-gray-900 transition disabled:opacity-50"
         >
           {loading ? 'Translating...' : 'Submit'}
         </button>
