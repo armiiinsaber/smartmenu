@@ -44,7 +44,10 @@ export default async function handler(
           },
         ],
       })
-      translations[lang] = aiRes.choices[0].message.content
+
+      // coalesce null to empty string
+      const translatedText = aiRes.choices[0].message.content ?? ''
+      translations[lang] = translatedText
     }
 
     // Generate a short slug to retrieve later
