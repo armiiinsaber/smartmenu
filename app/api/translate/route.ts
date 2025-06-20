@@ -9,43 +9,60 @@ const openai = new OpenAI();
 const generateSlug = () => Math.random().toString(36).substring(2, 8);
 
 export async function POST(request: Request) {
-  const { restaurantName, text, languages } =
-    (await request.json()) as {
+  try {
+    const body = await request.json();
+    const { restaurantName, text, languages } = body as {
       restaurantName: string;
       text: string;
       languages: string[];
     };
 
-  const slug = generateSlug();
-  const translations: Record<string, string> = {};
+    if (!restaurantName || !text || !languages?.length) {
+      return NextResponse.json(
+        { error: 'Missing restaurantName, text, or languages' },
+        { status: 400 }
+      );
+    }
 
-  await Promise.all(
-    languages.map(async (lang) => {
-      const messages = [
-        {
-          role: 'system',
-          content:
-            'You are a precise translation engine for restaurant menus. ' +
-            'Receive lines formatted as "Dish|Description|Price" and output exactly the translated lines in the same format. ' +
-            'Do not add extra text, numbering, or follow-up questions.'
-        },
-        {
-          role: 'user',
-          content: `Translate this menu into ${lang.toUpperCase()}:\n\n${text}`
-        }
-      ] as any;
+    const slug = generateSlug();
+    const translations: Record<string, string> = {};
 
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages,
-        temperature: 0,
-        max_tokens: 2000
-      });
+    await Promise.all(
+      languages.map(async (lang) => {
+        const messages = [
+          {
+            role: 'system',
+            content:
+              'You are a restaurant-menu translator. You’ll get a list of items in any delimited or tabular format. ' +
+              'First extract the dish, description, and price columns, then output only those columns in a pipe-delimited list (`Dish|Description|Price`). ' +
+              'No extra text, numbering, or follow-up questions.'
+          },
+          {
+            role: 'user',
+            content: `Translate this menu into ${lang.toUpperCase()}:
 
-      const choice = completion.choices?.[0];
-      translations[lang] = (choice?.message?.content ?? '').trim();
-    })
-  );
+${text}`
+          }
+        ] as any;
 
-  return NextResponse.json({ slug, restaurantName, translations });
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages,
+          temperature: 0,
+          max_tokens: 2000
+        });
+
+        const choice = completion.choices?.[0];
+        translations[lang] = (choice?.message?.content ?? '').trim();
+      })
+    );
+
+    return NextResponse.json({ slug, restaurantName, translations });
+  } catch (error: any) {
+    console.error('Translate API Error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Internal Server Error' },
+      { status: 500 }
+    );
+  }
 }
