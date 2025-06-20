@@ -8,6 +8,7 @@ export default function BuilderPage() {
   const [restaurantName, setRestaurantName] = useState('');
   const [rawText, setRawText] = useState('');
   const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const languages = ['en', 'es', 'fr', 'de', 'it', 'pt', 'zh', 'ja', 'ko', 'ru'];
@@ -24,6 +25,7 @@ export default function BuilderPage() {
       return;
     }
 
+    setLoading(true);
     try {
       const res = await fetch('/api/translate', {
         method: 'POST',
@@ -34,13 +36,15 @@ export default function BuilderPage() {
 
       if (!res.ok) {
         alert(`Error ${res.status}: ${payload.error || JSON.stringify(payload)}`);
+        setLoading(false);
         return;
       }
 
-      alert('Menu created! Redirecting...');
+      // Redirect automatically when ready
       router.push(`/menu/${payload.slug}`);
     } catch (error: any) {
       alert(`Network error: ${error.message || error}`);
+      setLoading(false);
     }
   }
 
@@ -68,6 +72,7 @@ export default function BuilderPage() {
               onChange={e => setRestaurantName(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
               placeholder="e.g. Cipriani"
+              disabled={loading}
             />
           </div>
 
@@ -79,6 +84,7 @@ export default function BuilderPage() {
               rows={6}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
               placeholder="Enter each line as Dish|Description|Price"
+              disabled={loading}
             />
           </div>
 
@@ -90,6 +96,7 @@ export default function BuilderPage() {
               ref={fileInputRef}
               onChange={handleFileUpload}
               className="w-full"
+              disabled={loading}
             />
           </div>
 
@@ -101,6 +108,7 @@ export default function BuilderPage() {
                   key={lang}
                   type="button"
                   onClick={() => toggleLang(lang)}
+                  disabled={loading}
                   className={`px-3 py-1 rounded-full text-sm border transition ${
                     selectedLangs.includes(lang)
                       ? 'bg-gray-800 text-white border-gray-800'
@@ -116,9 +124,14 @@ export default function BuilderPage() {
           <div className="text-center">
             <button
               onClick={handleSubmit}
-              className="mt-4 px-6 py-2 bg-gray-800 text-white rounded-lg font-medium hover:bg-gray-700 transition"
+              disabled={loading}
+              className={`mt-4 px-6 py-2 rounded-lg font-medium transition ${
+                loading
+                  ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                  : 'bg-gray-800 text-white hover:bg-gray-700'
+              }`}
             >
-              Generate Menu
+              {loading ? 'Translating…' : 'Generate Menu'}
             </button>
           </div>
         </div>
