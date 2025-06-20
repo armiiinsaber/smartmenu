@@ -1,4 +1,3 @@
-// app/builder/page.tsx
 "use client";
 
 import { useState, useRef } from 'react';
@@ -21,7 +20,7 @@ export default function BuilderPage() {
 
   async function handleSubmit() {
     if (!restaurantName || !rawText || selectedLangs.length === 0) {
-      alert("Please fill out restaurant name, menu text, and select at least one language.");
+      alert('Please fill out restaurant name, menu text, and select at least one language.');
       return;
     }
 
@@ -29,7 +28,7 @@ export default function BuilderPage() {
       const res = await fetch('/api/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ restaurantName, text: rawText, languages: selectedLangs })
+        body: JSON.stringify({ restaurantName, text: rawText, languages: selectedLangs }),
       });
       const payload = await res.json();
 
@@ -38,7 +37,7 @@ export default function BuilderPage() {
         return;
       }
 
-      alert("Menu created! Redirecting...");
+      alert('Menu created! Redirecting...');
       router.push(`/menu/${payload.slug}`);
     } catch (error: any) {
       alert(`Network error: ${error.message || error}`);
@@ -105,8 +104,8 @@ export default function BuilderPage() {
                   className={`px-3 py-1 rounded-full text-sm border transition ${
                     selectedLangs.includes(lang)
                       ? 'bg-gray-800 text-white border-gray-800'
-                      : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'`
-                  }
+                      : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'
+                  }`}
                 >
                   {lang.toUpperCase()}
                 </button>
