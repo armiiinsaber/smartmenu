@@ -31,27 +31,26 @@ export default async function handler(
   // Parallel translation calls
   await Promise.all(
     languages.map(async (lang) => {
-      // System message must use literal type for role
-      const systemMessage = {
-        role: 'system' as const,
-        content:
-          'You are a precise translation engine for restaurant menus. ' +
-          'Receive lines formatted as "Dish|Description|Price" and output exactly the translated lines in the same format. ' +
-          'Do not add extra text, numbering, or follow-up questions.'
-      };
+      // Define messages with required type casting
+      const messages = [
+        {
+          role: 'system',
+          content:
+            'You are a precise translation engine for restaurant menus. ' +
+            'Receive lines formatted as "Dish|Description|Price" and output exactly the translated lines in the same format. ' +
+            'Do not add extra text, numbering, or follow-up questions.'
+        },
+        {
+          role: 'user',
+          content: `Translate this menu into ${lang.toUpperCase()}:\n\n${text}`
+        }
+      ] as any;
 
-      // User message
-      const userMessage = {
-        role: 'user' as const,
-        content: `Translate this menu into ${lang.toUpperCase()}:\n\n${text}`
-      };
-
-      // Create chat completion
       const completion = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
-        messages: [systemMessage, userMessage],
+        messages,
         temperature: 0,
-        maxTokens: 2000
+        max_tokens: 2000
       });
 
       // Store trimmed translated content
