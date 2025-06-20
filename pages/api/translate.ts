@@ -1,8 +1,7 @@
-// pages/api/translate.ts
-
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { v4 as uuid } from 'uuid'
 import { OpenAI } from 'openai'
+import { menuStore, MenuData } from '../../lib/menuStore'
 
 const openai = new OpenAI()
 
@@ -16,7 +15,6 @@ export default async function handler(
 
   try {
     const { restaurantName, menuText, targetLangs } = req.body
-
     if (
       !restaurantName ||
       !menuText ||
@@ -28,36 +26,30 @@ export default async function handler(
         .json({ error: 'Missing fields or no languages selected' })
     }
 
-    // Perform translations for each language
-    const translations: Record<string, string> = {}
+    // Translate each language
+    const translations: Record<string,string> = {}
     for (const lang of targetLangs) {
       const aiRes = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
-            content: `You are a helpful translator. Translate the following restaurant menu into ${lang}, preserving formatting and prices exactly as written.`,
+            content: `Translate this menu into ${lang}, preserving formatting and prices.`,
           },
-          {
-            role: 'user',
-            content: menuText,
-          },
+          { role: 'user', content: menuText },
         ],
       })
-
-      // coalesce null to empty string
-      const translatedText = aiRes.choices[0].message.content ?? ''
-      translations[lang] = translatedText
+      translations[lang] = aiRes.choices[0].message.content ?? ''
     }
 
-    // Generate a short slug to retrieve later
     const slug = uuid().split('-')[0]
+    // store for later
+    const data: MenuData = { restaurantName, translations }
+    menuStore.set(slug, data)
 
-    // TODO: save { slug, restaurantName, translations } in your database
-
-    return res.status(200).json({ slug, translations })
+    return res.status(200).json({ slug })
   } catch (err) {
-    console.error('Translate API error:', err)
+    console.error(err)
     return res.status(500).json({ error: 'Internal server error' })
   }
 }
