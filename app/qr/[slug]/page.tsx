@@ -1,32 +1,41 @@
+// File: app/qr/[slug]/page.tsx
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
+interface MenuData {
+  restaurantName: string
+  translations: Record<string, string>
+}
+
 export default function QRPage() {
-const params = useParams() as { slug: string }
-const slug = params.slug
+  // ← properly grab `slug` as string
+  const params = useParams() as { slug: string }
+  const slug = params.slug
+
   const router = useRouter()
-  const [menuData, setMenuData] = useState<{
-    restaurantName: string
-    translations: Record<string, string>
-  } | null>(null)
-  const [activeLang, setActiveLang] = useState('en')
+  const [menuData, setMenuData] = useState<MenuData | null>(null)
+  const [activeLang, setActiveLang] = useState<string>('')
 
   useEffect(() => {
     if (!slug) return
-    const stored = sessionStorage.getItem(`menu-${slug}`)
-    if (!stored) {
-      router.replace('/')
+    const raw = sessionStorage.getItem(`menu-${slug}`)
+    if (!raw) {
+      router.replace('/') 
       return
     }
-    setMenuData(JSON.parse(stored))
-  }, [slug])
+    const parsed: MenuData = JSON.parse(raw)
+    setMenuData(parsed)
+    // default to first language
+    setActiveLang(Object.keys(parsed.translations)[0] || '')
+  }, [slug, router])
 
   if (!menuData) {
     return (
       <div className="p-10 text-center">
-        Menu not found or session expired.<br/>Please go back and translate again.
+        Menu not found or session expired.<br/>
+        Please go back and translate again.
       </div>
     )
   }
@@ -43,7 +52,7 @@ const slug = params.slug
               activeLang === lang ? 'bg-black text-white' : 'bg-gray-200'
             }`}
           >
-            {lang}
+            {lang.toUpperCase()}
           </button>
         ))}
       </div>
