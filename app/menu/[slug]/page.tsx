@@ -1,39 +1,39 @@
-"use client"
+// app/menu/[slug]/page.tsx
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 
-type TranslationsMap = Record<string, string>
+type TranslationsMap = Record<string, string>;
 
-default function MenuPage() {
-  const { slug } = useParams() as { slug: string }
-  const [restaurantName, setRestaurantName] = useState('')
-  const [translations, setTranslations] = useState<TranslationsMap>({})
-  const [currentLang, setCurrentLang] = useState('')
+export default function MenuPage() {
+  const { slug } = useParams() as { slug: string };
+  const [restaurantName, setRestaurantName] = useState('');
+  const [translations, setTranslations] = useState<TranslationsMap>({});
+  const [currentLang, setCurrentLang] = useState('');
 
   useEffect(() => {
-    if (!slug) return
-    const stored = sessionStorage.getItem(`menu-${slug}`)
+    if (!slug) return;
+    const stored = sessionStorage.getItem(`menu-${slug}`);
     if (stored) {
       const parsed = JSON.parse(stored) as {
-        restaurantName: string
-        translations: TranslationsMap
-      }
-      setRestaurantName(parsed.restaurantName)
-      setTranslations(parsed.translations)
-      const langs = Object.keys(parsed.translations)
-      setCurrentLang(langs[0] || '')
+        restaurantName: string;
+        translations: TranslationsMap;
+      };
+      setRestaurantName(parsed.restaurantName);
+      setTranslations(parsed.translations);
+      const langs = Object.keys(parsed.translations);
+      setCurrentLang(langs[0] || '');
     }
-  }, [slug])
+  }, [slug]);
 
   if (!restaurantName || !currentLang) {
-    return <p className="text-center mt-8">Loading menu...</p>
+    return <p className="text-center mt-8">Loading menu...</p>;
   }
 
-  // Parse lines and cells
   const rows = translations[currentLang]
     .split('\n')
-    .map(line => line.split('|').map(cell => cell.trim()))
+    .map(line => line.split('|').map(cell => cell.trim()));
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 px-4 py-8">
@@ -47,8 +47,11 @@ default function MenuPage() {
             <button
               key={lang}
               onClick={() => setCurrentLang(lang)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition 
-                ${currentLang === lang ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`.replace(/\s+/g, ' ')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                currentLang === lang
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+              }`}
             >
               {lang.toUpperCase()}
             </button>
@@ -75,5 +78,5 @@ default function MenuPage() {
         </table>
       </div>
     </div>
-  )
+  );
 }
