@@ -12,7 +12,11 @@ const supabase = createClient(
 );
 
 export default function MenuPage() {
-  const { slug } = useParams();
+const { slug } = useParams() as { slug: string };
+if (!slug) {
+  return <p style={{ textAlign: 'center', marginTop: '2rem' }}>Menu not found</p>;
+}
+
   const [name, setName] = useState('');
   const [translations, setTranslations] = useState<Record<string,string>>({});
   const [activeLang, setActiveLang] = useState('English');
