@@ -29,10 +29,7 @@ export default function BuilderPage() {
         }),
       })
 
-      // read raw text to avoid JSON parse crashes
       const text = await res.text()
-
-      // try JSON.parse, otherwise show raw text
       let data: any
       try {
         data = JSON.parse(text)
@@ -51,7 +48,8 @@ export default function BuilderPage() {
             translations: data.translations,
           })
         )
-        window.location.href = `/menu/${data.slug}`
+        // ← Redirect to the QR code stage instead of the menu
+        window.location.href = `/qr/${data.slug}`
       } else {
         console.error('Error JSON from /api/translate:', data)
         alert(data.error || JSON.stringify(data))
