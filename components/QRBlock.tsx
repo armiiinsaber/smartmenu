@@ -12,25 +12,47 @@ export default function QRBlock({ slug }: { slug: string }) {
     }
   }, [slug]);
 
-  // build an <img> src to the free QR code API
+  // Use the free QR-Server API (no extra deps)
   const qrSrc = url
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(url)}`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+        url
+      )}`
     : '';
 
   return (
-    <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        margin: '2rem 0',
+      }}
+    >
       {qrSrc && (
         <>
           <img
             src={qrSrc}
             alt="QR Code"
-            style={{ background: '#fff', padding: '1rem', display: 'inline-block' }}
+            style={{
+              background: '#fff',
+              padding: '1rem',
+              borderRadius: '8px',
+            }}
           />
-          <p style={{ fontSize: 12, marginTop: '.5rem', wordBreak: 'break-all' }}>
-            <a href={url} target="_blank" rel="noopener noreferrer">
-              {url}
-            </a>
-          </p>
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              marginTop: '0.75rem',
+              wordBreak: 'break-all',
+              textDecoration: 'none',
+              color: '#000',
+              fontSize: '0.9rem',
+            }}
+          >
+            Open menu: {url}
+          </a>
         </>
       )}
     </div>
