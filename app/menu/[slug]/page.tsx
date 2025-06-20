@@ -11,8 +11,7 @@ const supabase = createClient(
 );
 
 // Dynamically load the client-side menu viewer
-const MenuViewer = dynamic(() => import('@/components/MenuViewer'), { ssr: false });
-
+const MenuViewer = dynamic(() => import('../../../components/MenuViewer'), { ssr: false });
 type PageProps = { params: { slug: string } };
 
 export default async function MenuPage({ params }: PageProps) {
