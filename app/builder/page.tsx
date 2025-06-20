@@ -32,18 +32,18 @@ export default function BuilderPage() {
           `menu-${data.slug}`,
           JSON.stringify({
             restaurantName,
-            translations: data.translations
+            translations: data.translations,
           })
         )
         // then redirect
         window.location.href = `/menu/${data.slug}`
       } else {
-        console.error('API error:', data)
-        alert('Something went wrong.')
+        console.error('API returned error payload:', data)
+        alert(data.error || 'Unknown error from server')
       }
-    } catch (err) {
-      console.error('Submit failed:', err)
-      alert('An error occurred.')
+    } catch (err: any) {
+      console.error('Fetch failed:', err)
+      alert(err.message || 'Network or server error')
     } finally {
       setLoading(false)
     }
@@ -73,30 +73,4 @@ export default function BuilderPage() {
         <div className="grid grid-cols-2 gap-2">
           {['en', 'fr', 'es', 'de', 'fa', 'zh'].map((lang) => (
             <label key={lang} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                value={lang}
-                checked={selectedLangs.includes(lang)}
-                onChange={() =>
-                  setSelectedLangs((prev) =>
-                    prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
-                  )
-                }
-                className="h-4 w-4"
-              />
-              <span className="capitalize">{lang}</span>
-            </label>
-          ))}
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3 bg-black text-white rounded-2xl font-medium hover:bg-gray-900 transition disabled:opacity-50"
-        >
-          {loading ? 'Translating...' : 'Submit'}
-        </button>
-      </form>
-    </div>
-  )
-}
+              <inpu
