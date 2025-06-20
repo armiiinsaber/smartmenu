@@ -9,19 +9,42 @@ export default function BuilderPage() {
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+  e.preventDefault()
+  setLoading(true)
 
-    try {
-      const res = await fetch('/api/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          restaurantName,
-          menuText,
-          targetLang: selectedLang,
-        }),
-      })
+  if (!restaurantName || !menuText || selectedLangs.length === 0) {
+    alert('Please fill all fields and select at least one language.')
+    setLoading(false)
+    return
+  }
+
+  try {
+    const res = await fetch('/api/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        restaurantName,
+        menuText,
+        targetLangs: selectedLangs,
+      }),
+    })
+
+    const data = await res.json()
+
+    if (data?.slug) {
+      window.location.href = `/menu/${data.slug}`
+    } else {
+      console.log('API error:', data)
+      alert('Something went wrong.')
+    }
+  } catch (err) {
+    console.error('Submit failed:', err)
+    alert('An error occurred.')
+  } finally {
+    setLoading(false)
+  }
+}
+
 
       const data = await res.json()
 
@@ -59,20 +82,27 @@ export default function BuilderPage() {
           className="w-full px-4 py-3 rounded-2xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black shadow-sm resize-none"
         />
 
-        <div className="grid grid-cols-2 gap-2">
-          {['en', 'fr', 'es', 'de', 'fa', 'zh'].map((lang) => (
-            <label key={lang} className="flex items-center space-x-2">
-              <input
-                type="radio"
-                name="language"
-                value={lang}
-                checked={selectedLang === lang}
-                onChange={() => setSelectedLang(lang)}
-              />
-              <span className="capitalize">{lang}</span>
-            </label>
-          ))}
-        </div>
+      <div className="grid grid-cols-2 gap-2">
+  {['en', 'fr', 'es', 'de', 'fa', 'zh'].map((lang) => (
+    <label key={lang} className="flex items-center space-x-2">
+      <input
+        type="checkbox"
+        name="language"
+        value={lang}
+        checked={selectedLangs.includes(lang)}
+        onChange={() => {
+          if (selectedLangs.includes(lang)) {
+            setSelectedLangs(selectedLangs.filter((l) => l !== lang))
+          } else {
+            setSelectedLangs([...selectedLangs, lang])
+          }
+        }}
+      />
+      <span className="capitalize">{lang}</span>
+    </label>
+  ))}
+</div>
+
 
         <button
           type="submit"
