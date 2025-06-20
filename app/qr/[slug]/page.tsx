@@ -4,7 +4,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 export default function QRPage() {
-  const { slug } = useParams()
+const params = useParams() as { slug: string }
+const slug = params.slug
   const router = useRouter()
   const [menuData, setMenuData] = useState<{
     restaurantName: string
