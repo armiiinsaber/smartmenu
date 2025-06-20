@@ -1,73 +1,99 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-
-type TranslationsMap = Record<string, string>
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 
 export default function MenuPage() {
-  const { slug } = useParams() as { slug: string }
+  const { slug } = useParams() as { slug?: string };
+  const router = useRouter();
+  const [data, setData] = useState<{
+    restaurantName: string;
+    translations: Record<string, string>;
+  } | null>(null);
 
-  const [restaurantName, setRestaurantName] = useState('')
-  const [translations, setTranslations] = useState<TranslationsMap>({})
-  const [currentLang, setCurrentLang] = useState('en')
-
+  // 1️⃣ Load from sessionStorage
   useEffect(() => {
-    if (!slug) return
-    const stored = sessionStorage.getItem(`menu-${slug}`)
-    if (stored) {
-      const parsed = JSON.parse(stored) as {
-        restaurantName: string
-        translations: TranslationsMap
-      }
-      setRestaurantName(parsed.restaurantName)
-      setTranslations(parsed.translations)
-      setCurrentLang(
-        parsed.translations.en ? 'en' : Object.keys(parsed.translations)[0]
-      )
+    if (!slug) return;
+    const raw = sessionStorage.getItem(`menu-${slug}`);
+    if (!raw) {
+      // if nothing saved under that key, go back
+      router.replace('/');
+      return;
     }
-  }, [slug])
+    setData(JSON.parse(raw));
+  }, [slug, router]);
 
-  if (!translations || !Object.keys(translations).length) {
+  if (!data) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <p className="text-gray-500">
-          Menu not found or session expired. Please go back and translate again.
-        </p>
+      <div style={{ textAlign: 'center', marginTop: '2rem', fontFamily: 'sans-serif' }}>
+        Loading your menu…
       </div>
-    )
+    );
   }
 
-  return (
-    <div className="min-h-screen bg-white p-6 md:p-12">
-      {/* Header with just the restaurant name */}
-      <h1 className="text-4xl font-bold mb-8">{restaurantName}</h1>
+  const { restaurantName, translations } = data;
+  const langs = Object.keys(translations);
+  const [currentLang, setCurrentLang] = useState(langs[0]);
 
-      {/* Language buttons */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        {Object.keys(translations).map((lang) => (
+  // Split the menu text into lines for display
+  const lines = translations[currentLang]
+    .split(/\r?\n/)
+    .filter((l) => l.trim().length);
+
+  return (
+    <div style={{ maxWidth: 680, margin: '2rem auto', fontFamily: 'sans-serif' }}>
+      <h1 style={{ textAlign: 'center', marginBottom: '1rem' }}>{restaurantName}</h1>
+
+      {/* language buttons */}
+      <div style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: '0.5rem',
+        marginBottom: '1.5rem'
+      }}>
+        {langs.map((lang) => (
           <button
             key={lang}
             onClick={() => setCurrentLang(lang)}
-            className={`px-4 py-2 rounded-2xl font-medium transition 
-              ${
-                currentLang === lang
-                  ? 'bg-black text-white'
-                  : 'border border-gray-300 text-gray-700 hover:bg-gray-100'
-              }`}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: currentLang === lang ? '#111' : '#eee',
+              color: currentLang === lang ? '#fff' : '#000',
+              border: 'none',
+              borderRadius: 4,
+              cursor: 'pointer',
+              textTransform: 'capitalize',
+            }}
           >
-            {lang.toUpperCase()}
+            {lang}
           </button>
         ))}
       </div>
 
-      {/* Single menu view */}
-      <div className="bg-gray-50 p-8 rounded-2xl shadow-lg">
-        <pre className="whitespace-pre-wrap text-gray-800 text-lg">
-          {translations[currentLang]}
-        </pre>
-      </div>
+      {/* menu in clean format */}
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ borderBottom: '2px solid #333' }}>
+            <th align="left" style={{ padding: '8px 4px' }}>Dish</th>
+            <th align="left" style={{ padding: '8px 4px' }}>Description</th>
+            <th align="right" style={{ padding: '8px 4px' }}>Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          {lines.map((line, i) => {
+            // assume CSV of “Dish | Description | $Price”
+            const [dish, desc, price] = line.split('|').map(s => s.trim());
+            return (
+              <tr key={i} style={{ borderBottom: '1px solid #ddd' }}>
+                <td style={{ padding: '8px 4px' }}>{dish}</td>
+                <td style={{ padding: '8px 4px' }}>{desc}</td>
+                <td style={{ padding: '8px 4px', textAlign: 'right' }}>{price}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
-  )
+  );
 }
-
