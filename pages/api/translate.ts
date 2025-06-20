@@ -1,49 +1,55 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
-import { v4 as uuid } from 'uuid'
-import { OpenAI } from 'openai'
+// pages/api/translate.ts
+import { NextApiRequest, NextApiResponse } from 'next';
+import OpenAI from 'openai';
 
-const openai = new OpenAI()
+const openai = new OpenAI();
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+// Simple slug generator
+function generateSlug() {
+  return Math.random().toString(36).substring(2, 8);
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { restaurantName, menuText, targetLangs } = req.body
-  if (
-    !restaurantName ||
-    !menuText ||
-    !Array.isArray(targetLangs) ||
-    targetLangs.length === 0
-  ) {
-    return res.status(400).json({ error: 'Missing fields or no languages selected' })
-  }
+  const { restaurantName, text, languages } = req.body as {
+    restaurantName: string;
+    text: string;
+    languages: string[];
+  };
 
-  try {
-    const translations: Record<string, string> = {}
-    await Promise.all(
-      targetLangs.map(async lang => {
-        const aiRes = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: `Translate this restaurant menu into ${lang}, preserving formatting and prices exactly as written.`,
-            },
-            { role: 'user', content: menuText },
-          ],
-        })
-        translations[lang] = aiRes.choices?.[0]?.message.content ?? ''
-      })
-    )
+  const slug = generateSlug();
+  const translations: Record<string, string> = {};
 
-    const slug = uuid().split('-')[0]
-    return res.status(200).json({ slug, translations })
-  } catch (err: any) {
-    console.error(err)
-    return res.status(500).json({ error: err.message || 'Internal server error' })
-  }
+  await Promise.all(
+    languages.map(async (lang: string) => {
+      const systemMessage = {
+        role: 'system',
+        content:
+          'You are a precise translation engine for restaurant menus. ' +
+          'Receive lines formatted as "Dish|Description|Price" and output exactly the translated lines in the same format. ' +
+          'Do not add extra text, numbering, or follow-up questions.'
+      };
+      const userMessage = {
+        role: 'user',
+        content: `Translate this menu into ${lang.toUpperCase()}:
+
+${text}`
+      };
+
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [systemMessage, userMessage],
+        temperature: 0,
+        max_tokens: 2000
+      });
+
+      translations[lang] = completion.choices[0].message.content.trim();
+    })
+  );
+
+  return res.status(200).json({ slug, restaurantName, translations });
 }
