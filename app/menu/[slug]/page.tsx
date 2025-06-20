@@ -6,16 +6,8 @@ import { useParams } from 'next/navigation'
 type TranslationsMap = Record<string, string>
 
 export default function MenuPage() {
-  // useParams() returns Record<string, string | string[] | null>
-  const params = useParams()
-  // normalize slug to a string
-  const slugRaw = params.slug
-  const slug =
-    typeof slugRaw === 'string'
-      ? slugRaw
-      : Array.isArray(slugRaw) && slugRaw.length > 0
-      ? slugRaw[0]
-      : null
+  // Assert slug is always a string
+  const { slug } = useParams() as { slug: string }
 
   const [restaurantName, setRestaurantName] = useState<string>('')
   const [translations, setTranslations] = useState<TranslationsMap | null>(null)
@@ -33,7 +25,7 @@ export default function MenuPage() {
     }
   }, [slug])
 
-  if (!slug || !translations) {
+  if (!translations) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <p className="text-gray-500">
