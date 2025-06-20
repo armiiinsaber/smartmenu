@@ -19,8 +19,15 @@ export default async function handler(
   }
 
   const { restaurantName, menuText, targetLangs } = req.body
-  if (!restaurantName || !menuText || !Array.isArray(targetLangs) || !targetLangs.length) {
-    return res.status(400).json({ error: 'Missing fields or no languages selected' })
+  if (
+    !restaurantName ||
+    !menuText ||
+    !Array.isArray(targetLangs) ||
+    targetLangs.length === 0
+  ) {
+    return res
+      .status(400)
+      .json({ error: 'Missing fields or no languages selected' })
   }
 
   try {
@@ -32,7 +39,7 @@ export default async function handler(
           messages: [
             {
               role: 'system',
-              content: `Translate this restaurant menu into ${lang}, preserving formatting and prices exactly.`,
+              content: `Translate this restaurant menu into ${lang}, preserving formatting and prices exactly as written.`,
             },
             { role: 'user', content: menuText },
           ],
@@ -47,22 +54,20 @@ export default async function handler(
       .from('menus')
       .insert({
         slug,
-        title: restaurantName,
-        json_menu: translations,
+        name: restaurantName,
+        translations,
+        languages: targetLangs,
         status: 'approved',
       })
 
     if (error) {
-      console.error('❌ SUPABASE ERROR:', error)
-      return res.status(500).json({
-        error: error.message,
-        details: error.details,
-      })
+      console.error('Supabase insert error:', error)
+      return res.status(500).json({ error: error.message })
     }
 
     return res.status(200).json({ slug, translations })
   } catch (err: any) {
-    console.error('🔥 Translate API error:', err)
+    console.error('Translate API error:', err)
     return res.status(500).json({ error: err.message })
   }
 }
