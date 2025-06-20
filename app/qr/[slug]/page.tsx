@@ -1,35 +1,24 @@
-// File: app/qr/[slug]/page.tsx
 'use client';
 
 import React from 'react';
-import dynamic from 'next/dynamic';
-import { useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import QRBlock from '../../../components/QRBlock';
 
-// Dynamically import QRBlock to ensure it's client-side
-const QRBlock = dynamic(() => import('@/components/QRBlock'), { ssr: false });
-
-export default function QRPage({ params }: { params: { slug: string } }) {
-  const { slug } = params;
-  const router = useRouter();
-
-  // If no slug, redirect back
+export default function QRPage() {
+  const params = useParams() as { slug?: string };
+  const slug = params.slug;
   if (!slug) {
-    if (typeof window !== 'undefined') router.push('/');
-    return null;
+    return (
+      <p style={{ textAlign: 'center', marginTop: '2rem', fontFamily: 'sans-serif' }}>
+        ⚠️ Invalid QR code
+      </p>
+    );
   }
 
   return (
-    <div style={{ minHeight: '100vh', padding: '2rem', fontFamily: 'sans-serif', background: '#fafafa' }}>
-      <h1 style={{ textAlign: 'center', marginBottom: '1rem' }}>Your QR Code</h1>
-      <p style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        Scan this code or click the link below to view your menu:
-      </p>
+    <div style={{ maxWidth: 600, margin: '2rem auto', fontFamily: 'sans-serif' }}>
+      <h1 style={{ textAlign: 'center', marginBottom: '1rem' }}>Scan to View Menu</h1>
       <QRBlock slug={slug} />
-      <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-        <a href={`/menu/${slug}`} style={{ color: '#0070f3', textDecoration: 'underline' }}>
-          View your menu
-        </a>
-      </div>
     </div>
   );
 }
