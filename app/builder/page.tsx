@@ -22,12 +22,15 @@ export default function BuilderPage() {
       const res = await fetch('/api/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ restaurantName, menuText, targetLangs: selectedLangs }),
+        body: JSON.stringify({
+          restaurantName,
+          menuText,
+          targetLangs: selectedLangs,
+        }),
       })
       const data = await res.json()
 
       if (data.slug && data.translations) {
-        // stash the translations in sessionStorage
         sessionStorage.setItem(
           `menu-${data.slug}`,
           JSON.stringify({
@@ -35,7 +38,6 @@ export default function BuilderPage() {
             translations: data.translations,
           })
         )
-        // then redirect
         window.location.href = `/menu/${data.slug}`
       } else {
         console.error('API returned error payload:', data)
@@ -73,4 +75,32 @@ export default function BuilderPage() {
         <div className="grid grid-cols-2 gap-2">
           {['en', 'fr', 'es', 'de', 'fa', 'zh'].map((lang) => (
             <label key={lang} className="flex items-center space-x-2">
-              <inpu
+              <input
+                type="checkbox"
+                value={lang}
+                checked={selectedLangs.includes(lang)}
+                onChange={() =>
+                  setSelectedLangs((prev) =>
+                    prev.includes(lang)
+                      ? prev.filter((l) => l !== lang)
+                      : [...prev, lang]
+                  )
+                }
+                className="h-4 w-4"
+              />
+              <span className="capitalize">{lang}</span>
+            </label>
+          ))}
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-3 bg-black text-white rounded-2xl font-medium hover:bg-gray-900 transition disabled:opacity-50"
+        >
+          {loading ? 'Translating...' : 'Submit'}
+        </button>
+      </form>
+    </div>
+  )
+}
