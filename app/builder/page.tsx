@@ -22,18 +22,23 @@ export default function BuilderPage() {
       const res = await fetch('/api/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          restaurantName,
-          menuText,
-          targetLangs: selectedLangs,
-        }),
+        body: JSON.stringify({ restaurantName, menuText, targetLangs: selectedLangs }),
       })
       const data = await res.json()
 
-      if (data.slug) {
+      if (data.slug && data.translations) {
+        // stash the translations in sessionStorage
+        sessionStorage.setItem(
+          `menu-${data.slug}`,
+          JSON.stringify({
+            restaurantName,
+            translations: data.translations
+          })
+        )
+        // then redirect
         window.location.href = `/menu/${data.slug}`
       } else {
-        console.log('API error:', data)
+        console.error('API error:', data)
         alert('Something went wrong.')
       }
     } catch (err) {
