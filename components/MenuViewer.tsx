@@ -50,25 +50,3 @@ export default function MenuViewer({ name, translations }: Props) {
     </div>
   );
 }
-
-// File: app/menu/[slug]/page.tsx (update)
-import dynamic from 'next/dynamic';
-
-// Replace the client-side div with this dynamic component:
-const MenuViewer = dynamic(() => import('@/components/MenuViewer'), { ssr: false });
-
-export default async function MenuPage({ params }: { params: { slug: string } }) {
-  const { slug } = params;
-  const { data, error } = await supabase
-    .from('menus')
-    .select('name, translations')
-    .eq('slug', slug)
-    .single();
-  if (error || !data) notFound();
-
-  return (
-    <div style={{ maxWidth: 600, margin: '2rem auto' }}>
-      <MenuViewer name={data.name} translations={data.translations} />
-    </div>
-  );
-}
