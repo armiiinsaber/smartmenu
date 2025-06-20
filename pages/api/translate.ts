@@ -1,83 +1,60 @@
 // File: pages/api/translate.ts
-import type { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiRequest, NextApiResponse } from 'next';
+import { createClient } from '@supabase/supabase-js';
+import { v4 as uuidv4 } from 'uuid';
+import OpenAI from 'openai';
 
-export const config = {
-  api: {
-    bodyParser: true,
-  },
-};
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
-type MenuInput = {
-  raw: string;
-  name: string;
-  languages: string[];
-};
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+
+const TOP_LANGUAGES = [
+  'English', 'French', 'Spanish', 'Chinese', 'Punjabi',
+  'Arabic', 'Tagalog', 'Italian', 'German', 'Urdu'
+];
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { raw, name, languages } = req.body as MenuInput;
-
-  if (!raw || !name || !Array.isArray(languages) || languages.length === 0) {
-    return res.status(400).json({ error: 'Invalid input' });
+  const { name, content, languages } = req.body;
+  if (!name || !content || !languages || !Array.isArray(languages)) {
+    return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const lines = raw.split(/\r?\n/).filter(Boolean);
-  const unique = Array.from(new Set(lines));
-
-  const prompt = `
-You are a professional restaurant menu translator. 
-Translate the following menu into the following ${languages.length} languages: ${languages.join(', ')}.
-Keep the menu structure and formatting clean and elegant.
-
-Each line in the output should follow this format:
-"Dish Name | Description | Price"
-
-If there is no description, skip that part but keep the bars:
-"Dish Name || $12"
-
-Here is the menu in English:
-${unique.join('\n')}
-
-Return a JSON object where each key is the language and the value is the translated array of lines.
-`;
-
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
+    const translations: Record<string, string> = {};
+
+    for (const lang of languages) {
+      const prompt = `Translate the following restaurant menu into ${lang}. Format each item as:
+Dish – Description – Price\n\nMenu:\n${content}`;
+
+      const response = await openai.chat.completions.create({
         model: 'gpt-4',
-        messages: [
-          { role: 'system', content: 'You are a professional translator and menu formatter.' },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.2,
-        max_tokens: 3000,
-      }),
-    });
+        messages: [{ role: 'user', content: prompt }],
+      });
 
-    const result = await response.json();
-
-    const content = result?.choices?.[0]?.message?.content;
-
-    if (!content) {
-      return res.status(500).json({ error: 'No response from OpenAI' });
+      translations[lang] = response.choices[0].message.content || '';
     }
 
-    const parsed = JSON.parse(content);
+    const slug = uuidv4();
 
-    return res.status(200).json({
-      name,
-      translations: parsed,
-    });
+    const { error } = await supabase.from('menus').insert([
+      { name, slug, translations }
+    ]);
+
+    if (error) {
+      console.error('Supabase insert error:', error);
+      return res.status(500).json({ error: 'Failed to save menu' });
+    }
+
+    res.status(200).json({ slug });
   } catch (err) {
     console.error('Translation error:', err);
-    return res.status(500).json({ error: 'Translation failed', details: (err as Error).message });
+    res.status(500).json({ error: 'Translation failed' });
   }
 }
