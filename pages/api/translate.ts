@@ -1,60 +1,60 @@
-// File: pages/api/translate.ts
-import { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
-import { v4 as uuidv4 } from 'uuid';
-import OpenAI from 'openai';
+// pages/api/translate.ts
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import type { NextApiRequest, NextApiResponse } from 'next'
+import { v4 as uuid } from 'uuid'
+import { OpenAI } from 'openai'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+const openai = new OpenAI()
 
-const TOP_LANGUAGES = [
-  'English', 'French', 'Spanish', 'Chinese', 'Punjabi',
-  'Arabic', 'Tagalog', 'Italian', 'German', 'Urdu'
-];
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const { name, content, languages } = req.body;
-  if (!name || !content || !languages || !Array.isArray(languages)) {
-    return res.status(400).json({ error: 'Missing required fields' });
+    return res.status(405).json({ error: 'Method not allowed' })
   }
 
   try {
-    const translations: Record<string, string> = {};
+    const { restaurantName, menuText, targetLangs } = req.body
 
-    for (const lang of languages) {
-      const prompt = `Translate the following restaurant menu into ${lang}. Format each item as:
-Dish – Description – Price\n\nMenu:\n${content}`;
-
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [{ role: 'user', content: prompt }],
-      });
-
-      translations[lang] = response.choices[0].message.content || '';
+    if (
+      !restaurantName ||
+      !menuText ||
+      !Array.isArray(targetLangs) ||
+      targetLangs.length === 0
+    ) {
+      return res
+        .status(400)
+        .json({ error: 'Missing fields or no languages selected' })
     }
 
-    const slug = uuidv4();
-
-    const { error } = await supabase.from('menus').insert([
-      { name, slug, translations }
-    ]);
-
-    if (error) {
-      console.error('Supabase insert error:', error);
-      return res.status(500).json({ error: 'Failed to save menu' });
+    // Perform translations for each language
+    const translations: Record<string, string> = {}
+    for (const lang of targetLangs) {
+      const aiRes = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a helpful translator. Translate the following restaurant menu into ${lang}, preserving formatting and prices exactly as written.`,
+          },
+          {
+            role: 'user',
+            content: menuText,
+          },
+        ],
+      })
+      translations[lang] = aiRes.choices[0].message.content
     }
 
-    res.status(200).json({ slug });
+    // Generate a short slug to retrieve later
+    const slug = uuid().split('-')[0]
+
+    // TODO: save { slug, restaurantName, translations } in your database
+
+    return res.status(200).json({ slug, translations })
   } catch (err) {
-    console.error('Translation error:', err);
-    res.status(500).json({ error: 'Translation failed' });
+    console.error('Translate API error:', err)
+    return res.status(500).json({ error: 'Internal server error' })
   }
 }
