@@ -16,46 +16,65 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
     }
 
-    // Batch prompt for JSON-only response
-    const prompt = `You are a JSON generator. Given a menu and languages, output ONLY valid JSON.
-{
-  "languages": [${languages.map(l => `"${l}"`).join(', ')}],
-  "menu": "${raw.replace(/"/g, '\\"')}"
-}
-Respond with a JSON object where each key is a language and the value is the translated menu preserving line breaks.`;
+    // Build a single prompt that returns pure JSON
+    const prompt = `
+You are a JSON-only translator. Given a \"menu\" string and an array of \"languages\", output EXACTLY valid JSON in this form:
 
-    // Single API call
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+{
+  "Spanish": "...translated menu here...",
+  "French": "...translated menu here...",
+  // etc.
+}
+
+Do not include any markdown fences or extra commentary—only the JSON object.
+
+Here are the inputs:
+menu: """${raw.replace(/\\/\"/g, '\\\\"')}"""
+languages: ${JSON.stringify(languages)}
+
+Translate now:
+`;
+
+    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
-      body: JSON.stringify({ model: 'gpt-3.5-turbo', messages: [{ role: 'user', content: prompt }], temperature: 0, max_tokens: 2000 }),
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.2,
+        max_tokens: 2000,
+      }),
     });
-    const result = await response.json();
-    let content: string = result.choices?.[0]?.message?.content || '';
-
-    // Extract JSON from code fence if present
-    const jsonMatch = content.match(/```(?:json\n)?([\s\S]*?)```/);
-    const jsonString = jsonMatch ? jsonMatch[1].trim() : content.trim();
-
-    let translations: Record<string, string>;
+    const json = await openaiRes.json();
+    const content = json.choices?.[0]?.message?.content?.trim() || '';
+    
+    let translations: Record<string,string>;
     try {
-      translations = JSON.parse(jsonString);
+      translations = JSON.parse(content);
     } catch (e) {
-      console.error('Failed to parse JSON:', content);
-      return NextResponse.json({ error: 'Translation response was not valid JSON' }, { status: 500 });
+      console.error('Invalid JSON from OpenAI:', content);
+      return NextResponse.json(
+        { error: 'Translation response was not valid JSON' },
+        { status: 500 }
+      );
     }
 
-    // Persist
+    // Persist to Supabase
     const slug = uuidv4().slice(0, 8);
-    const { error } = await supabase.from('menus').insert({ slug, name, translations, created_at: new Date().toISOString() });
+    const { error } = await supabase
+      .from('menus')
+      .insert({ slug, name, translations, created_at: new Date().toISOString() });
     if (error) throw error;
 
     return NextResponse.json({ slug });
   } catch (err: any) {
     console.error('Translate API error:', err);
-    return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: err.message || 'Server error' },
+      { status: 500 }
+    );
   }
 }
