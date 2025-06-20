@@ -1,108 +1,129 @@
-'use client'
+// app/builder/page.tsx
+"use client";
 
-import { useState } from 'react'
+import { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function BuilderPage() {
-  const [restaurantName, setRestaurantName] = useState('')
-  const [menuText, setMenuText] = useState('')
-  const [selectedLangs, setSelectedLangs] = useState<string[]>([])
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const [restaurantName, setRestaurantName] = useState('');
+  const [rawText, setRawText] = useState('');
+  const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setLoading(true)
+  const languages = ['en', 'es', 'fr', 'de', 'it', 'pt', 'zh', 'ja', 'ko', 'ru'];
 
-    if (!restaurantName.trim() || !menuText.trim() || selectedLangs.length === 0) {
-      alert('Please fill all fields and select at least one language.')
-      setLoading(false)
-      return
+  function toggleLang(lang: string) {
+    setSelectedLangs(prev =>
+      prev.includes(lang) ? prev.filter(l => l !== lang) : [...prev, lang]
+    );
+  }
+
+  async function handleSubmit() {
+    if (!restaurantName || !rawText || selectedLangs.length === 0) {
+      alert("Please fill out restaurant name, menu text, and select at least one language.");
+      return;
     }
 
     try {
       const res = await fetch('/api/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          restaurantName,
-          menuText,
-          targetLangs: selectedLangs,
-        }),
-      })
+        body: JSON.stringify({ restaurantName, text: rawText, languages: selectedLangs })
+      });
+      const payload = await res.json();
 
-      const text = await res.text()
-      let data: any
-      try {
-        data = JSON.parse(text)
-      } catch {
-        alert(text)
-        setLoading(false)
-        return
+      if (!res.ok) {
+        alert(`Error ${res.status}: ${payload.error || JSON.stringify(payload)}`);
+        return;
       }
 
-      if (data.slug && data.translations) {
-        sessionStorage.setItem(
-          `menu-${data.slug}`,
-          JSON.stringify({
-            restaurantName,
-            translations: data.translations,
-          })
-        )
-        window.location.href = `/qr/${data.slug}`
-      } else {
-        alert(data.error || 'Unexpected response')
-      }
-    } catch (err: any) {
-      alert(err.message || 'Network error')
-    } finally {
-      setLoading(false)
+      alert("Menu created! Redirecting...");
+      router.push(`/menu/${payload.slug}`);
+    } catch (error: any) {
+      alert(`Network error: ${error.message || error}`);
     }
   }
 
+  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setRawText(reader.result as string);
+    };
+    reader.readAsText(file);
+  }
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start p-6">
-      <h1 className="text-2xl font-bold mb-6">Upload Your Menu</h1>
-      <form onSubmit={handleSubmit} className="w-full max-w-md space-y-4">
-        <input
-          type="text"
-          placeholder="Restaurant Name"
-          value={restaurantName}
-          onChange={e => setRestaurantName(e.target.value)}
-          className="w-full p-3 border rounded"
-        />
-        <textarea
-          placeholder="Paste your menu here..."
-          value={menuText}
-          onChange={e => setMenuText(e.target.value)}
-          rows={6}
-          className="w-full p-3 border rounded resize-none"
-        />
-        <div className="grid grid-cols-2 gap-2">
-          {['en','fr','es','de','zh','ar','hi','pt','ru','it'].map(lang => (
-            <label key={lang} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                value={lang}
-                checked={selectedLangs.includes(lang)}
-                onChange={() =>
-                  setSelectedLangs(prev =>
-                    prev.includes(lang)
-                      ? prev.filter(l => l !== lang)
-                      : [...prev, lang]
-                  )
-                }
-              />
-              <span className="capitalize">{lang}</span>
-            </label>
-          ))}
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-xl bg-white shadow-lg rounded-2xl p-6">
+        <h1 className="text-2xl font-semibold mb-4 text-center">SmartMenu Builder</h1>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Restaurant Name</label>
+            <input
+              type="text"
+              value={restaurantName}
+              onChange={e => setRestaurantName(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              placeholder="e.g. Cipriani"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Paste menu text</label>
+            <textarea
+              value={rawText}
+              onChange={e => setRawText(e.target.value)}
+              rows={6}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              placeholder="Enter each line as Dish|Description|Price"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Or upload file</label>
+            <input
+              type="file"
+              accept=".txt,.csv,.xlsx"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              className="w-full"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Select languages (up to 10)</label>
+            <div className="flex flex-wrap gap-2">
+              {languages.map(lang => (
+                <button
+                  key={lang}
+                  type="button"
+                  onClick={() => toggleLang(lang)}
+                  className={`px-3 py-1 rounded-full text-sm border transition ${
+                    selectedLangs.includes(lang)
+                      ? 'bg-gray-800 text-white border-gray-800'
+                      : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'`
+                  }
+                >
+                  {lang.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="text-center">
+            <button
+              onClick={handleSubmit}
+              className="mt-4 px-6 py-2 bg-gray-800 text-white rounded-lg font-medium hover:bg-gray-700 transition"
+            >
+              Generate Menu
+            </button>
+          </div>
         </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3 bg-black text-white rounded hover:bg-gray-800 disabled:opacity-50"
-        >
-          {loading ? 'Translating…' : 'Submit'}
-        </button>
-      </form>
+      </div>
     </div>
-  )
+  );
 }
