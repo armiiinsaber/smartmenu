@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
     }
 
-    // Single batch prompt
+    // Batch translation prompt
     const prompt = `You are a JSON translator. Given:
 MENU_START
 ${raw}
@@ -26,33 +26,42 @@ ${languages.join(',')}
 LANGUAGES_END
 Return ONLY valid JSON mapping each language to its translated menu, preserving line breaks.`;
 
+    // Call OpenAI once
     const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
-      body: JSON.stringify({ model: 'gpt-3.5-turbo', messages: [{ role: 'user', content: prompt }], temperature: 0 }),
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.2,
+        max_tokens: 2000,
+      }),
     });
     const data = await openaiRes.json();
     const content = data.choices?.[0]?.message?.content?.trim() || '';
 
-    // Extract JSON
-    let jsonStart = content.indexOf('{');
-    let jsonString = content;
-    if (jsonStart !== -1) jsonString = content.slice(jsonStart);
-
+    // Parse or fallback
     let translations: Record<string, string>;
     try {
-      translations = JSON.parse(jsonString);
+      // Attempt to parse JSON response
+      translations = JSON.parse(content);
     } catch (e) {
-      console.error('JSON parse error:', content);
-      return NextResponse.json({ error: 'Invalid JSON from translator' }, { status: 500 });
+      console.error('Invalid JSON from OpenAI, falling back to raw menu:', content);
+      // Fallback: return raw menu for each language
+      translations = {};
+      for (const lang of languages) {
+        translations[lang] = raw;
+      }
     }
 
-    // Insert
+    // Persist to Supabase
     const slug = uuidv4().slice(0, 8);
-    const { error } = await supabase.from('menus').insert({ slug, name, translations, created_at: new Date().toISOString() });
+    const { error } = await supabase
+      .from('menus')
+      .insert({ slug, name, translations, created_at: new Date().toISOString() });
     if (error) throw error;
 
     return NextResponse.json({ slug });
