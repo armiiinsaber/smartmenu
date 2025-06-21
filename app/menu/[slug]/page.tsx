@@ -46,7 +46,7 @@ export default function MenuPage() {
 
   const structured: MenuEntry[] = rows.map(cols => {
     const [first, second, third] = cols;
-    // Detect section headers: a row with only a title (no desc or price)
+    // Section header: only title
     if (first && !second && !third) {
       return { type: 'section', title: first };
     }
@@ -55,11 +55,12 @@ export default function MenuPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF8F4] text-gray-900 px-6 py-12">
-      <div className="max-w-2xl mx-auto bg-white shadow-lg rounded-2xl p-8">
-        {/* Header */}
+      <div className="max-w-2xl mx-auto bg-white shadow-lg rounded-2xl p-10">
+        {/* Header with decorative flourish */}
         <header className="text-center mb-8">
           <h1 className="text-4xl font-serif text-gray-900">{restaurantName}</h1>
           <div className="mt-2 h-1 w-24 bg-[#C9B458] mx-auto"></div>
+          <div className="text-[#C9B458] text-2xl mt-4">❧</div>
         </header>
 
         {/* Language selection */}
@@ -79,15 +80,17 @@ export default function MenuPage() {
           ))}
         </div>
 
-        {/* Menu items with sections */}
-        <ul className="space-y-6">
+        {/* Menu items with ornate sections */}
+        <ul className="space-y-10">
           {structured.map((entry, idx) => (
             entry.type === 'section' ? (
-              <li key={idx} className="pt-8">
-                <h2 className="text-2xl font-serif text-gray-900 text-center uppercase">
+              <li key={idx} className="">
+                <h2 className="text-2xl font-serif text-center text-gray-900 uppercase">
                   {entry.title}
                 </h2>
-                <div className="my-2 flex justify-center items-center">
+                <div className="flex justify-center my-3">
+                  <span className="block h-px w-16 bg-[#C9B458]"></span>
+                  <span className="mx-3 text-[#C9B458] text-lg">❧</span>
                   <span className="block h-px w-16 bg-[#C9B458]"></span>
                 </div>
               </li>
