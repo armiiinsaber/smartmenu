@@ -5,11 +5,15 @@ import { useParams } from 'next/navigation';
 
 type TranslationsMap = Record<string, string>;
 
-interface MenuEntry {
-  category: string;
+interface MenuItem {
   name: string;
   desc?: string;
   price?: string;
+}
+
+interface MenuSection {
+  category: string;
+  items: MenuItem[];
 }
 
 export default function MenuPage() {
@@ -37,24 +41,36 @@ export default function MenuPage() {
     return <p className="text-center mt-12 text-gray-600">Loading menu...</p>;
   }
 
-  // 1) Split into rows, then into columns [category, name, desc, price]
-  const rows = translations[currentLang]
+  // Build sections by detecting single-field vs. triple-field lines
+  const rawLines = translations[currentLang]
     .split('\n')
-    .map(line => line.split('|').map(cell => cell.trim()));
+    .map(line => line.trim())
+    .filter(line => line !== '');
 
-  // 2) Map into structured entries
-  const entries: MenuEntry[] = rows.map(
-    ([category, name, desc, price]) => ({ category, name, desc, price })
-  );
+  const sections: MenuSection[] = [];
+  let currentSection: MenuSection | null = null;
 
-  // 3) Group by category
-  const grouped = entries.reduce((acc: Record<string, MenuEntry[]>, entry) => {
-    if (!acc[entry.category]) acc[entry.category] = [];
-    acc[entry.category].push(entry);
-    return acc;
-  }, {});
-
-  const categories = Object.keys(grouped);
+  rawLines.forEach(line => {
+    const parts = line.split('|').map(p => p.trim());
+    if (parts.length === 1) {
+      // New category header
+      currentSection = { category: parts[0], items: [] };
+      sections.push(currentSection);
+    } else if (parts.length >= 3) {
+      // Menu item under current category
+      // If no category defined yet, bucket into "Menu"
+      if (!currentSection) {
+        currentSection = { category: 'Menu', items: [] };
+        sections.push(currentSection);
+      }
+      currentSection.items.push({
+        name: parts[0],
+        desc: parts[1],
+        price: parts[2],
+      });
+    }
+    // ignore any malformed lines
+  });
 
   return (
     <div className="min-h-screen bg-[#FAF8F4] text-gray-900 px-6 py-12">
@@ -87,13 +103,13 @@ export default function MenuPage() {
           ))}
         </div>
 
-        {/* Grouped Menu */}
-        <div className="space-y-12">
-          {categories.map(category => (
-            <section key={category}>
-              {/* Category Header */}
+        {/* Sections & Items */}
+        <div className="space-y-16">
+          {sections.map((section, si) => (
+            <section key={si}>
+              {/* Category Title */}
               <h2 className="text-2xl font-serif text-center text-gray-900 uppercase tracking-widest">
-                {category}
+                {section.category}
               </h2>
               <div className="flex justify-center my-4 items-center">
                 <span className="block h-px w-24 bg-[#C9B458]" />
@@ -101,22 +117,22 @@ export default function MenuPage() {
                 <span className="block h-px w-24 bg-[#C9B458]" />
               </div>
 
-              {/* Items List */}
+              {/* Item List */}
               <ul className="space-y-8">
-                {grouped[category].map((entry, idx) => (
+                {section.items.map((item, idx) => (
                   <li key={idx} className="space-y-2">
                     <div className="flex items-center">
                       <h3 className="font-serif text-xl text-gray-900 uppercase tracking-wide">
-                        {entry.name}
+                        {item.name}
                       </h3>
                       <span className="flex-grow border-b border-dotted border-gray-300 mx-6" />
                       <span className="font-serif text-xl text-gray-900">
-                        {entry.price}
+                        {item.price}
                       </span>
                     </div>
-                    {entry.desc && (
+                    {item.desc && (
                       <p className="text-base text-gray-700 ml-2 italic">
-                        {entry.desc}
+                        {item.desc}
                       </p>
                     )}
                   </li>
