@@ -1,3 +1,4 @@
+```tsx
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -36,11 +37,14 @@ export default function MenuPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF8F4] text-gray-900 px-6 py-12">
-      <div className="max-w-2xl mx-auto bg-white shadow-lg rounded-2xl p-8 space-y-8">
-        <h1 className="text-4xl font-serif text-center text-gray-900">
-          {restaurantName}
-        </h1>
+      <div className="max-w-2xl mx-auto bg-white shadow-lg rounded-2xl p-8">
+        {/* Header with restaurant name and accent line */}
+        <header className="text-center mb-8">
+          <h1 className="text-4xl font-serif text-gray-900">{restaurantName}</h1>
+          <div className="mt-2 h-1 w-24 bg-[#C9B458] mx-auto"></div>
+        </header>
 
+        {/* Language selection */}
         <div className="flex flex-wrap justify-center gap-3 mb-8">
           {Object.keys(translations).map(lang => (
             <button
@@ -57,25 +61,21 @@ export default function MenuPage() {
           ))}
         </div>
 
-        <table className="w-full">
-          <thead className="border-b-2 border-[#C9B458]">
-            <tr>
-              <th className="pb-3 text-left text-lg font-serif">Dish</th>
-              <th className="pb-3 text-left text-lg font-serif">Description</th>
-              <th className="pb-3 text-right text-lg font-serif">Price</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {rows.map((cols, idx) => (
-              <tr key={idx}>
-                <td className="py-4 font-medium text-base text-gray-900">{cols[0] || ''}</td>
-                <td className="py-4 text-base text-gray-700">{cols[1] || ''}</td>
-                <td className="py-4 text-base text-gray-900 text-right">{cols[2] || ''}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {/* Menu items list styled like Michelin menu */}
+        <ul className="space-y-8">
+          {rows.map((cols, idx) => (
+            <li key={idx} className="space-y-1">
+              <div className="flex items-center">
+                <h2 className="font-serif text-xl text-gray-900">{cols[0] || ''}</h2>
+                <span className="flex-grow border-b border-dotted border-gray-300 mx-4"></span>
+                <span className="font-serif text-xl text-gray-900">{cols[2] || ''}</span>
+              </div>
+              {cols[1] && <p className="text-base text-gray-700 ml-1">{cols[1]}</p>}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
 }
+```
