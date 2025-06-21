@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import OpenAI, { ChatCompletionRequestMessage } from 'openai';
 
-// Initialize OpenAI client (ensure OPENAI_API_KEY is set)
+// Initialize OpenAI client
 const openai = new OpenAI();
 
 // Simple slug generator
@@ -27,7 +27,8 @@ export async function POST(request: Request) {
 
     await Promise.all(
       languages.map(async (lang) => {
-        const messages = [
+        // 👇 Use the correct OpenAI message type
+        const messages: ChatCompletionRequestMessage[] = [
           {
             role: 'system',
             content:
@@ -49,7 +50,8 @@ export async function POST(request: Request) {
           temperature: 0,
         });
 
-        translations[lang] = completion.choices?.[0].message?.content.trim() ?? '';
+        translations[lang] =
+          completion.choices?.[0].message?.content.trim() || '';
       })
     );
 
