@@ -1,4 +1,3 @@
-// app/api/translate/route.ts
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
@@ -33,15 +32,15 @@ export async function POST(request: Request) {
           {
             role: 'system',
             content:
-              'You are a restaurant-menu translator. You’ll get a list of items in any delimited or tabular format. ' +
-              'First extract the dish, description, and price columns, then output only those columns in a pipe-delimited list (`Dish|Description|Price`). ' +
-              'No extra text, numbering, or follow-up questions.'
+              'You are a luxury-restaurant-menu translator. You’ll receive lines in the format `Category|Dish|Description|Price`.\n' +
+              'Translate **all four** fields into the target language, preserving the pipe-delimited order `Category|Dish|Description|Price`.\n' +
+              '- Do not add or remove columns\n' +
+              '- Do not add numbering, bullets, or any extra text\n' +
+              '- Only output the translated lines, one per item'
           },
           {
             role: 'user',
-            content: `Translate this menu into ${lang.toUpperCase()}:
-
-${text}`
+            content: `Translate this menu into ${lang.toUpperCase()}:\n\n${text}`
           }
         ] as any;
 
@@ -49,7 +48,7 @@ ${text}`
           model: 'gpt-4o-mini',
           messages,
           temperature: 0,
-          max_tokens: 2000
+          max_tokens: 2000,
         });
 
         const choice = completion.choices?.[0];
