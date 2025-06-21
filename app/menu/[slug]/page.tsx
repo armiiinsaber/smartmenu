@@ -53,7 +53,8 @@ export default function MenuPage() {
   }, {});
 
   return (
-    <div className="min-h-screen bg-[#FAF8F4] px-6 py-12">
+    // <-- Updated padding here for true mobile/desktop parity
+    <div className="min-h-screen bg-[#FAF8F4] px-4 sm:px-6 md:px-8 py-12">
       <div className="max-w-2xl mx-auto bg-white shadow-2xl rounded-2xl p-16 border border-[#C9B458]">
         {/* Restaurant Name */}
         <header className="text-center mb-12">
@@ -63,7 +64,7 @@ export default function MenuPage() {
           <div className="mt-2 h-1 w-24 bg-[#C9B458] mx-auto"></div>
         </header>
 
-        {/* Language Row: scrolls cleanly inside padding */}
+        {/* Language Row */}
         <div className="mb-10 overflow-x-auto">
           <div className="inline-flex whitespace-nowrap px-6 gap-2">
             {Object.keys(translations).map((lang) => (
