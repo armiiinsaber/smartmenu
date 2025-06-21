@@ -1,9 +1,18 @@
+```tsx
 "use client";
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 
 type TranslationsMap = Record<string, string>;
+
+interface MenuEntry {
+  type: 'section' | 'item';
+  title?: string;
+  name?: string;
+  desc?: string;
+  price?: string;
+}
 
 export default function MenuPage() {
   const { slug } = useParams() as { slug: string };
@@ -30,14 +39,24 @@ export default function MenuPage() {
     return <p className="text-center mt-12 text-gray-600">Loading menu...</p>;
   }
 
-  const rows = translations[currentLang]
+  // Parse and structure rows into sections and items
+  const rows: string[][] = translations[currentLang]
     .split('\n')
     .map(line => line.split('|').map(cell => cell.trim()));
+
+  const structured: MenuEntry[] = rows.map(cols => {
+    const [first, second, third] = cols;
+    // Detect section headers: a row with only a title (no desc or price)
+    if (first && !second && !third) {
+      return { type: 'section', title: first };
+    }
+    return { type: 'item', name: first, desc: second, price: third };
+  });
 
   return (
     <div className="min-h-screen bg-[#FAF8F4] text-gray-900 px-6 py-12">
       <div className="max-w-2xl mx-auto bg-white shadow-lg rounded-2xl p-8">
-        {/* Header with restaurant name and accent line */}
+        {/* Header */}
         <header className="text-center mb-8">
           <h1 className="text-4xl font-serif text-gray-900">{restaurantName}</h1>
           <div className="mt-2 h-1 w-24 bg-[#C9B458] mx-auto"></div>
@@ -60,20 +79,34 @@ export default function MenuPage() {
           ))}
         </div>
 
-        {/* Menu items list styled like Michelin menu */}
-        <ul className="space-y-8">
-          {rows.map((cols, idx) => (
-            <li key={idx} className="space-y-1">
-              <div className="flex items-center">
-                <h2 className="font-serif text-xl text-gray-900">{cols[0] || ''}</h2>
-                <span className="flex-grow border-b border-dotted border-gray-300 mx-4"></span>
-                <span className="font-serif text-xl text-gray-900">{cols[2] || ''}</span>
-              </div>
-              {cols[1] && <p className="text-base text-gray-700 ml-1">{cols[1]}</p>}
-            </li>
+        {/* Menu items with sections */}
+        <ul className="space-y-6">
+          {structured.map((entry, idx) => (
+            entry.type === 'section' ? (
+              <li key={idx} className="pt-8">
+                <h2 className="text-2xl font-serif text-gray-900 text-center uppercase">
+                  {entry.title}
+                </h2>
+                <div className="my-2 flex justify-center items-center">
+                  <span className="block h-px w-16 bg-[#C9B458]"></span>
+                </div>
+              </li>
+            ) : (
+              <li key={idx} className="space-y-1">
+                <div className="flex items-center">
+                  <h3 className="font-serif text-xl text-gray-900">{entry.name}</h3>
+                  <span className="flex-grow border-b border-dotted border-gray-300 mx-4"></span>
+                  <span className="font-serif text-xl text-gray-900">{entry.price}</span>
+                </div>
+                {entry.desc && (
+                  <p className="text-base text-gray-700 ml-1">{entry.desc}</p>
+                )}
+              </li>
+            )
           ))}
         </ul>
       </div>
     </div>
   );
 }
+```
