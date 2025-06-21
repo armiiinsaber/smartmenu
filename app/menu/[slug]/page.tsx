@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -7,9 +6,8 @@ import { useParams } from 'next/navigation';
 type TranslationsMap = Record<string, string>;
 
 interface MenuEntry {
-  type: 'section' | 'item';
-  title?: string;
-  name?: string;
+  category: string;
+  name: string;
   desc?: string;
   price?: string;
 }
@@ -39,17 +37,24 @@ export default function MenuPage() {
     return <p className="text-center mt-12 text-gray-600">Loading menu...</p>;
   }
 
-  const rows: string[][] = translations[currentLang]
+  // 1) Split into rows, then into columns [category, name, desc, price]
+  const rows = translations[currentLang]
     .split('\n')
     .map(line => line.split('|').map(cell => cell.trim()));
 
-  const structured: MenuEntry[] = rows.map(cols => {
-    const [first, second, third] = cols;
-    if (first && !second && !third) {
-      return { type: 'section', title: first };
-    }
-    return { type: 'item', name: first, desc: second, price: third };
-  });
+  // 2) Map into structured entries
+  const entries: MenuEntry[] = rows.map(
+    ([category, name, desc, price]) => ({ category, name, desc, price })
+  );
+
+  // 3) Group by category
+  const grouped = entries.reduce((acc: Record<string, MenuEntry[]>, entry) => {
+    if (!acc[entry.category]) acc[entry.category] = [];
+    acc[entry.category].push(entry);
+    return acc;
+  }, {});
+
+  const categories = Object.keys(grouped);
 
   return (
     <div className="min-h-screen bg-[#FAF8F4] text-gray-900 px-6 py-12">
@@ -58,12 +63,14 @@ export default function MenuPage() {
         <div className="absolute top-4 left-4 text-[#C9B458] text-2xl">❖</div>
         <div className="absolute bottom-4 right-4 text-[#C9B458] text-2xl">❖</div>
 
+        {/* Header */}
         <header className="text-center mb-8">
           <h1 className="text-4xl font-serif text-gray-900">{restaurantName}</h1>
           <div className="mt-2 h-1 w-24 bg-[#C9B458] mx-auto"></div>
           <div className="text-[#C9B458] text-2xl mt-4">❧</div>
         </header>
 
+        {/* Language Selector */}
         <div className="flex flex-wrap justify-center gap-3 mb-8">
           {Object.keys(translations).map(lang => (
             <button
@@ -80,37 +87,45 @@ export default function MenuPage() {
           ))}
         </div>
 
-        <ul className="space-y-12">
-          {structured.map((entry, idx) =>
-            entry.type === 'section' ? (
-              <li key={idx} className="pt-4">
-                <h2 className="text-2xl font-serif text-center text-gray-900 uppercase tracking-widest">
-                  {entry.title}
-                </h2>
-                <div className="flex justify-center my-4 items-center">
-                  <span className="block h-px w-24 bg-[#C9B458]" />
-                  <span className="mx-4 text-[#C9B458] text-lg">❧</span>
-                  <span className="block h-px w-24 bg-[#C9B458]" />
-                </div>
-              </li>
-            ) : (
-              <li key={idx} className="space-y-2">
-                <div className="flex items-center">
-                  <h3 className="font-serif text-xl text-gray-900 uppercase tracking-wide">
-                    {entry.name}
-                  </h3>
-                  <span className="flex-grow border-b border-dotted border-gray-300 mx-6" />
-                  <span className="font-serif text-xl text-gray-900">{entry.price}</span>
-                </div>
-                {entry.desc && (
-                  <p className="text-base text-gray-700 ml-2 italic">{entry.desc}</p>
-                )}
-              </li>
-            )
-          )}
-        </ul>
+        {/* Grouped Menu */}
+        <div className="space-y-12">
+          {categories.map(category => (
+            <section key={category}>
+              {/* Category Header */}
+              <h2 className="text-2xl font-serif text-center text-gray-900 uppercase tracking-widest">
+                {category}
+              </h2>
+              <div className="flex justify-center my-4 items-center">
+                <span className="block h-px w-24 bg-[#C9B458]" />
+                <span className="mx-4 text-[#C9B458] text-lg">❧</span>
+                <span className="block h-px w-24 bg-[#C9B458]" />
+              </div>
+
+              {/* Items List */}
+              <ul className="space-y-8">
+                {grouped[category].map((entry, idx) => (
+                  <li key={idx} className="space-y-2">
+                    <div className="flex items-center">
+                      <h3 className="font-serif text-xl text-gray-900 uppercase tracking-wide">
+                        {entry.name}
+                      </h3>
+                      <span className="flex-grow border-b border-dotted border-gray-300 mx-6" />
+                      <span className="font-serif text-xl text-gray-900">
+                        {entry.price}
+                      </span>
+                    </div>
+                    {entry.desc && (
+                      <p className="text-base text-gray-700 ml-2 italic">
+                        {entry.desc}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
-
