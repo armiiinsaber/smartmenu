@@ -1,7 +1,8 @@
+// app/api/translate/route.ts
 import { NextResponse } from 'next/server';
-import OpenAI, { ChatCompletionRequestMessage } from 'openai';
+import OpenAI from 'openai';
 
-// Initialize OpenAI client
+// Initialize OpenAI client (ensure OPENAI_API_KEY is set in your environment)
 const openai = new OpenAI();
 
 // Simple slug generator
@@ -9,7 +10,8 @@ const generateSlug = () => Math.random().toString(36).substring(2, 8);
 
 export async function POST(request: Request) {
   try {
-    const { restaurantName, text, languages } = (await request.json()) as {
+    const body = await request.json();
+    const { restaurantName, text, languages } = body as {
       restaurantName: string;
       text: string;
       languages: string[];
@@ -25,41 +27,43 @@ export async function POST(request: Request) {
     const slug = generateSlug();
     const translations: Record<string, string> = {};
 
+    // Kick off all translations in parallel
     await Promise.all(
       languages.map(async (lang) => {
-        // 👇 Use the correct OpenAI message type
-        const messages: ChatCompletionRequestMessage[] = [
+        // <-- cast to any so TS won’t complain about message types
+        const messages = [
           {
             role: 'system',
             content:
               'You are an expert restaurant-menu translator.\n' +
-              '• Input format per line: `Category|Dish|Description|Price`.\n' +
-              '• Translate all four fields into the target language, preserving the pipe delimiters.\n' +
-              '• Do not drop, merge, reorder, or add lines—output exactly one translated line per input line.\n' +
-              '• No numbering, bullets, or extra text—only the translated pipe-delimited lines.'
+              '• Input format: `Category|Dish|Description|Price`, one item per line.\n' +
+              '• Translate all four fields, preserving the pipe delimiters.\n' +
+              '• Maintain exactly one output line per input line, in the same order.\n' +
+              '• Do not add numbering, bullets, or any extra text.'
           },
           {
             role: 'user',
             content: `Translate this menu into ${lang.toUpperCase()}:\n\n${text}`
           }
-        ];
+        ] as any;
 
         const completion = await openai.chat.completions.create({
           model: 'gpt-4o-mini',
           messages,
           temperature: 0,
+          max_tokens: 2000,
         });
 
-        translations[lang] =
-          completion.choices?.[0].message?.content.trim() || '';
+        const choice = completion.choices?.[0];
+        translations[lang] = (choice?.message?.content ?? '').trim();
       })
     );
 
     return NextResponse.json({ slug, restaurantName, translations });
-  } catch (err: any) {
-    console.error('Translate API Error:', err);
+  } catch (error: any) {
+    console.error('Translate API Error:', error);
     return NextResponse.json(
-      { error: err.message || 'Internal Server Error' },
+      { error: error.message || 'Internal Server Error' },
       { status: 500 }
     );
   }
