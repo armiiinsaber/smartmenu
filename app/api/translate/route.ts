@@ -1,3 +1,4 @@
+// app/api/translate/route.ts
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
@@ -28,22 +29,19 @@ export async function POST(request: Request) {
 
     await Promise.all(
       languages.map(async (lang) => {
-        // Cast to any so TypeScript won’t complain
         const messages = [
           {
             role: 'system',
             content:
-              'You are an expert luxury menu translator. You will receive lines in the format:\n' +
-              '`Category|Dish|Description|Price`\n\n' +
-              '1. **Always translate** the first field (Category) into the target language—never leave it in English.\n' +
-              '2. Translate the Dish and Description fields fully into the target language.\n' +
-              '3. **Do NOT** modify the Price field; leave it exactly as provided.\n' +
-              '4. Preserve **exactly one output line per input line**, in the same order.\n' +
-              '5. Output only the translated, pipe-delimited lines—no numbering, bullets, or extra text.'
+              'You are an expert restaurant-menu translator.\n' +
+              '• Input format: `Category|Dish|Description|Price`, one item per line.\n' +
+              '• Translate all four fields, preserving the pipe delimiters.\n' +
+              '• Maintain exactly one output line per input line, in the same order.\n' +
+              '• Do not add numbering, bullets, or any extra text.'
           },
           {
             role: 'user',
-            content: `Translate the following menu items into ${lang.toUpperCase()}:\n\n${text}`
+            content: `Translate this menu into ${lang.toUpperCase()}:\n\n${text}`
           }
         ] as any;
 
@@ -51,9 +49,12 @@ export async function POST(request: Request) {
           model: 'gpt-4o-mini',
           messages,
           temperature: 0,
+          max_tokens: 2000,
         });
 
-        translations[lang] = completion.choices?.[0].message?.content.trim() ?? '';
+        // Fully guard every step before calling .trim()
+        const content = completion.choices?.[0]?.message?.content;
+        translations[lang] = content ? content.trim() : '';
       })
     );
 
