@@ -1,9 +1,8 @@
-// app/layout.tsx
-import './globals.css';   // leave it even if the file is empty for now
+import "./globals.css";
 
 export const metadata = {
-  title: 'SmartMenu',
-  description: 'AI-powered multilingual menus',
+  title: "Acarte",
+  description: "AI-powered multilingual menus",
 };
 
 export default function RootLayout({
@@ -12,8 +11,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body style={{margin:0, fontFamily:'system-ui, sans-serif'}}>
+    <html lang="en" className="font-sans">
+      <head>
+        {/* Preconnects for faster font loading */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        {/* Playfair Display (serif) + Inter (sans) */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="m-0">
         {children}
       </body>
     </html>
