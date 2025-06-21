@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-// Initialize OpenAI client (ensure OPENAI_API_KEY is set in your environment)
+// Initialize OpenAI client (ensure OPENAI_API_KEY is set)
 const openai = new OpenAI();
 
 // Simple slug generator
@@ -32,11 +32,12 @@ export async function POST(request: Request) {
           {
             role: 'system',
             content:
-              'You are a luxury-restaurant-menu translator. You’ll receive lines in the format `Category|Dish|Description|Price`.\n' +
-              'Translate **all four** fields into the target language, preserving the pipe-delimited order `Category|Dish|Description|Price`.\n' +
-              '- Do not add or remove columns\n' +
-              '- Do not add numbering, bullets, or any extra text\n' +
-              '- Only output the translated lines, one per item'
+              'You are a luxury-restaurant-menu translator. You’ll receive lines in the format:\n' +
+              '`Category|Dish|Description|Price`\n\n' +
+              '1. **Translate only** the Category, Dish, and Description fields into the target language.\n' +
+              '2. **Do NOT** translate, alter, or localize the Price field — leave it exactly as provided (e.g. `$9 each`).\n' +
+              '3. Output only the translated lines, **pipe-delimited** in the same order: `Category|Dish|Description|Price`.\n' +
+              '4. Do not add numbering, bullets, or any other text.'
           },
           {
             role: 'user',
