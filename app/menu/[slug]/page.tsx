@@ -28,16 +28,15 @@ export default function MenuPage() {
       };
       setRestaurantName(parsed.restaurantName);
       setTranslations(parsed.translations);
-      const langs = Object.keys(parsed.translations);
-      setCurrentLang(langs[0] || '');
+      setCurrentLang(Object.keys(parsed.translations)[0] || '');
     }
   }, [slug]);
 
   if (!restaurantName || !currentLang) {
-    return <p className="text-center mt-12 text-gray-600">Loading menu...</p>;
+    return <p className="text-center mt-12 text-gray-600">Loading menu…</p>;
   }
 
-  // Parse and group Category|Dish|Description|Price
+  // parse Category|Dish|Description|Price
   const rows = translations[currentLang]
     .split('\n')
     .map(line => line.split('|').map(cell => cell.trim()))
@@ -47,12 +46,10 @@ export default function MenuPage() {
     ([category, name, desc, price]) => ({ category, name, desc, price })
   );
 
-  const grouped = entries.reduce((acc: Record<string, MenuEntry[]>, e) => {
+  const grouped = entries.reduce<Record<string, MenuEntry[]>>((acc, e) => {
     (acc[e.category] = acc[e.category] || []).push(e);
     return acc;
   }, {});
-
-  const categories = Object.keys(grouped);
 
   return (
     <div className="min-h-screen bg-[#FAF8F4] text-gray-900 px-6 py-12">
@@ -63,13 +60,11 @@ export default function MenuPage() {
 
         {/* Restaurant Title */}
         <header className="text-center mb-10">
-          <h1 className="text-5xl font-serif leading-tight text-gray-900">
-            {restaurantName}
-          </h1>
+          <h1 className="text-5xl font-serif leading-tight">{restaurantName}</h1>
           <div className="mt-2 h-1 w-24 bg-[#C9B458] mx-auto"></div>
         </header>
 
-        {/* Languages (scrollable row) */}
+        {/* Language Row */}
         <div className="mb-8 -mx-6 px-6 overflow-x-auto whitespace-nowrap">
           {Object.keys(translations).map(lang => (
             <button
@@ -88,23 +83,17 @@ export default function MenuPage() {
 
         {/* Menu Sections */}
         <div className="space-y-20">
-          {categories.map(category => (
-            <section key={category} className="mt-12">
-              {/* Category Header */}
-              <h2 className="text-2xl font-serif uppercase tracking-wider leading-tight text-center text-gray-900">
+          {Object.entries(grouped).map(([category, items]) => (
+            <section key={category}>
+              <h2 className="text-2xl font-serif uppercase tracking-wider leading-tight text-center mb-6">
                 {category}
               </h2>
-
-              {/* Items using CSS Grid */}
-              <ul className="space-y-6 mt-6">
-                {grouped[category].map((item, idx) => (
-                  <li
-                    key={idx}
-                    className="grid grid-cols-[1fr_auto] items-start gap-x-4"
-                  >
-                    {/* Dish name + description */}
-                    <div>
-                      <h3 className="font-serif text-xl uppercase tracking-wide leading-snug text-gray-900">
+              <ul className="space-y-6">
+                {items.map((item, idx) => (
+                  <li key={idx} className="leader-li flex items-start">
+                    {/* Dish + description */}
+                    <div className="relative z-10 bg-white pr-4">
+                      <h3 className="font-serif text-xl uppercase tracking-wide leading-snug">
                         {item.name}
                       </h3>
                       {item.desc && (
@@ -113,9 +102,8 @@ export default function MenuPage() {
                         </p>
                       )}
                     </div>
-
-                    {/* Price aligned right */}
-                    <span className="font-serif text-xl leading-snug text-gray-900">
+                    {/* Price */}
+                    <span className="relative z-10 bg-white ml-auto font-serif text-xl leading-snug">
                       {item.price}
                     </span>
                   </li>
@@ -125,6 +113,22 @@ export default function MenuPage() {
           ))}
         </div>
       </div>
+
+      {/* Leader-dot CSS */}
+      <style jsx global>{`
+        .leader-li {
+          position: relative;
+        }
+        .leader-li::before {
+          content: '';
+          position: absolute;
+          left: 1rem;  /* aligns just after the padding of the name container */
+          right: 1rem; /* aligns just before the price container */
+          top: calc(1.5rem + 0.25rem); /* mid‐line of the text */
+          border-bottom: 1px dotted rgba(0, 0, 0, 0.2);
+          pointer-events: none;
+        }
+      `}</style>
     </div>
   );
 }
