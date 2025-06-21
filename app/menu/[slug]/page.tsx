@@ -1,4 +1,3 @@
-```tsx
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -46,7 +45,6 @@ export default function MenuPage() {
 
   const structured: MenuEntry[] = rows.map(cols => {
     const [first, second, third] = cols;
-    // Section header: only title
     if (first && !second && !third) {
       return { type: 'section', title: first };
     }
@@ -56,14 +54,12 @@ export default function MenuPage() {
   return (
     <div className="min-h-screen bg-[#FAF8F4] text-gray-900 px-6 py-12">
       <div className="max-w-2xl mx-auto bg-white shadow-lg rounded-2xl p-10">
-        {/* Header with decorative flourish */}
         <header className="text-center mb-8">
           <h1 className="text-4xl font-serif text-gray-900">{restaurantName}</h1>
           <div className="mt-2 h-1 w-24 bg-[#C9B458] mx-auto"></div>
           <div className="text-[#C9B458] text-2xl mt-4">❧</div>
         </header>
 
-        {/* Language selection */}
         <div className="flex flex-wrap justify-center gap-3 mb-8">
           {Object.keys(translations).map(lang => (
             <button
@@ -80,33 +76,30 @@ export default function MenuPage() {
           ))}
         </div>
 
-        {/* Menu items with ornate sections */}
         <ul className="space-y-10">
-          {structured.map((entry, idx) => (
+          {structured.map((entry, idx) =>
             entry.type === 'section' ? (
-              <li key={idx} className="">
+              <li key={idx}>
                 <h2 className="text-2xl font-serif text-center text-gray-900 uppercase">
                   {entry.title}
                 </h2>
                 <div className="flex justify-center my-3">
-                  <span className="block h-px w-16 bg-[#C9B458]"></span>
+                  <span className="block h-px w-16 bg-[#C9B458]" />
                   <span className="mx-3 text-[#C9B458] text-lg">❧</span>
-                  <span className="block h-px w-16 bg-[#C9B458]"></span>
+                  <span className="block h-px w-16 bg-[#C9B458]" />
                 </div>
               </li>
             ) : (
               <li key={idx} className="space-y-1">
                 <div className="flex items-center">
                   <h3 className="font-serif text-xl text-gray-900">{entry.name}</h3>
-                  <span className="flex-grow border-b border-dotted border-gray-300 mx-4"></span>
+                  <span className="flex-grow border-b border-dotted border-gray-300 mx-4" />
                   <span className="font-serif text-xl text-gray-900">{entry.price}</span>
                 </div>
-                {entry.desc && (
-                  <p className="text-base text-gray-700 ml-1">{entry.desc}</p>
-                )}
+                {entry.desc && <p className="text-base text-gray-700 ml-1">{entry.desc}</p>}
               </li>
             )
-          ))}
+          )}
         </ul>
       </div>
     </div>
