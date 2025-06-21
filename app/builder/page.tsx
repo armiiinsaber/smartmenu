@@ -21,7 +21,7 @@ export default function BuilderPage() {
 
   async function handleSubmit() {
     if (!restaurantName || !rawText || selectedLangs.length === 0) {
-      alert('Please fill out restaurant name, menu text, and select at least one language.');
+      alert('Please fill out restaurant, menu text, and select at least one language.');
       return;
     }
 
@@ -40,14 +40,12 @@ export default function BuilderPage() {
         return;
       }
 
-      // Redirect automatically when ready
-      // Persist into sessionStorage for menu page
-sessionStorage.setItem(
-  `menu-${payload.slug}`,
-  JSON.stringify({ restaurantName: payload.restaurantName, translations: payload.translations })
-);
-// Navigate to menu display
-router.push(`/menu/${payload.slug}`);
+      // Persist and redirect to menu display
+      sessionStorage.setItem(
+        `menu-${payload.slug}`,
+        JSON.stringify({ restaurantName: payload.restaurantName, translations: payload.translations })
+      );
+      router.push(`/menu/${payload.slug}`);
     } catch (error: any) {
       alert(`Network error: ${error.message || error}`);
       setLoading(false);
@@ -65,60 +63,64 @@ router.push(`/menu/${payload.slug}`);
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-xl bg-white shadow-lg rounded-2xl p-6">
-        <h1 className="text-2xl font-semibold mb-4 text-center">SmartMenu Builder</h1>
+    <div className="min-h-screen bg-[#FAF8F4] flex items-center justify-center p-6">
+      <div className="w-full max-w-lg bg-white shadow-lg rounded-2xl p-8 space-y-8">
+        <h1 className="text-4xl font-serif text-gray-900 text-center">Acarte</h1>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
+          {/* Restaurant input */}
           <div>
-            <label className="block text-sm font-medium mb-1">Restaurant Name</label>
+            <label className="block text-xs uppercase text-gray-600 mb-2">Restaurant</label>
             <input
               type="text"
               value={restaurantName}
               onChange={e => setRestaurantName(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
               placeholder="e.g. Cipriani"
               disabled={loading}
+              className="w-full border-b-2 border-gray-300 focus:border-[#C9B458] focus:outline-none pb-2 text-gray-900"
             />
           </div>
 
+          {/* Menu text area */}
           <div>
-            <label className="block text-sm font-medium mb-1">Paste menu text</label>
+            <label className="block text-xs uppercase text-gray-600 mb-2">Today’s Menu</label>
             <textarea
               value={rawText}
               onChange={e => setRawText(e.target.value)}
               rows={6}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
               placeholder="Enter each line as Dish|Description|Price"
               disabled={loading}
+              className="w-full border-b-2 border-gray-300 focus:border-[#C9B458] focus:outline-none pb-2 text-gray-900"
             />
           </div>
 
+          {/* File upload */}
           <div>
-            <label className="block text-sm font-medium mb-1">Or upload file</label>
+            <label className="block text-xs uppercase text-gray-600 mb-2">Or upload menu file</label>
             <input
               type="file"
               accept=".txt,.csv,.xlsx"
               ref={fileInputRef}
               onChange={handleFileUpload}
-              className="w-full"
               disabled={loading}
+              className="text-sm text-gray-500"
             />
           </div>
 
+          {/* Language selection */}
           <div>
-            <label className="block text-sm font-medium mb-1">Select languages (up to 10)</label>
-            <div className="flex flex-wrap gap-2">
+            <label className="block text-xs uppercase text-gray-600 mb-2">Your Guests Speak</label>
+            <div className="flex flex-wrap gap-3">
               {languages.map(lang => (
                 <button
                   key={lang}
                   type="button"
                   onClick={() => toggleLang(lang)}
                   disabled={loading}
-                  className={`px-3 py-1 rounded-full text-sm border transition ${
+                  className={`px-4 py-2 text-sm font-semibold rounded-full border transition-colors disabled:opacity-50 ${
                     selectedLangs.includes(lang)
-                      ? 'bg-gray-800 text-white border-gray-800'
-                      : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'
+                      ? 'bg-gray-900 text-white border-gray-900'
+                      : 'bg-transparent text-gray-900 border-gray-300 hover:bg-gray-100'
                   }`}
                 >
                   {lang.toUpperCase()}
@@ -127,17 +129,18 @@ router.push(`/menu/${payload.slug}`);
             </div>
           </div>
 
+          {/* Submit button */}
           <div className="text-center">
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className={`mt-4 px-6 py-2 rounded-lg font-medium transition ${
+              className={`px-8 py-3 font-serif uppercase tracking-wide border ${
                 loading
-                  ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                  : 'bg-gray-800 text-white hover:bg-gray-700'
-              }`}
+                  ? 'text-gray-400 border-gray-300 cursor-not-allowed'
+                  : 'text-[#C9B458] border-[#C9B458] hover:bg-[#C9B458] hover:text-white'
+              } transition-colors`}
             >
-              {loading ? 'Translating…' : 'Generate Menu'}
+              {loading ? 'Generating…' : 'Generate Menus'}
             </button>
           </div>
         </div>
