@@ -63,21 +63,23 @@ export default function MenuPage() {
           <div className="mt-2 h-1 w-24 bg-[#C9B458] mx-auto"></div>
         </header>
 
-        {/* Language Row */}
-        <div className="mb-10 -mx-6 px-6 overflow-x-auto whitespace-nowrap">
-          {Object.keys(translations).map((lang) => (
-            <button
-              key={lang}
-              onClick={() => setCurrentLang(lang)}
-              className={`inline-block mx-1 px-4 py-2 text-sm font-semibold rounded-full border transition-colors ${
-                currentLang === lang
-                  ? 'bg-[#C9B458] text-white border-[#C9B458]'
-                  : 'bg-transparent text-gray-900 border-gray-300 hover:bg-gray-100'
-              }`}
-            >
-              {lang.toUpperCase()}
-            </button>
-          ))}
+        {/* Language Row: scrolls cleanly inside padding */}
+        <div className="mb-10 overflow-x-auto">
+          <div className="inline-flex whitespace-nowrap px-6 gap-2">
+            {Object.keys(translations).map((lang) => (
+              <button
+                key={lang}
+                onClick={() => setCurrentLang(lang)}
+                className={`inline-block px-4 py-2 text-sm font-semibold rounded-full border transition-colors ${
+                  currentLang === lang
+                    ? 'bg-[#C9B458] text-white border-[#C9B458]'
+                    : 'bg-transparent text-gray-900 border-gray-300 hover:bg-gray-100'
+                }`}
+              >
+                {lang.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Menu Sections */}
@@ -89,7 +91,7 @@ export default function MenuPage() {
                 {category}
               </h2>
               {/* Simple dotted divider */}
-              <div className="border-b border-dotted border-gray-300/20 my-4"></div>
+              <div className="border-b border-dotted border-gray-300/20 my-4" />
 
               {/* Items */}
               <ul className="space-y-8">
