@@ -1,4 +1,3 @@
-// app/menu/[slug]/page.tsx
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -28,7 +27,7 @@ export default function MenuPage() {
   }, [slug]);
 
   if (!restaurantName || !currentLang) {
-    return <p className="text-center mt-8">Loading menu...</p>;
+    return <p className="text-center mt-12 text-gray-600">Loading menu...</p>;
   }
 
   const rows = translations[currentLang]
@@ -36,21 +35,21 @@ export default function MenuPage() {
     .map(line => line.split('|').map(cell => cell.trim()));
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 px-4 py-8">
-      <div className="max-w-2xl mx-auto bg-white shadow-xl rounded-2xl p-6">
-        <h1 className="text-3xl font-semibold mb-4 text-center">
+    <div className="min-h-screen bg-[#FAF8F4] text-gray-900 px-6 py-12">
+      <div className="max-w-2xl mx-auto bg-white shadow-lg rounded-2xl p-8 space-y-8">
+        <h1 className="text-4xl font-serif text-center text-gray-900">
           {restaurantName}
         </h1>
 
-        <div className="flex flex-wrap justify-center gap-2 mb-6">
+        <div className="flex flex-wrap justify-center gap-3 mb-8">
           {Object.keys(translations).map(lang => (
             <button
               key={lang}
               onClick={() => setCurrentLang(lang)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+              className={`px-4 py-2 text-sm font-semibold rounded-full border transition-colors disabled:opacity-50 ${
                 currentLang === lang
-                  ? 'bg-gray-800 text-white'
-                  : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                  ? 'bg-[#C9B458] text-white border-[#C9B458]'
+                  : 'bg-transparent text-gray-900 border-gray-300 hover:bg-gray-100'
               }`}
             >
               {lang.toUpperCase()}
@@ -58,20 +57,20 @@ export default function MenuPage() {
           ))}
         </div>
 
-        <table className="w-full text-left">
-          <thead className="border-b-2 border-gray-200">
+        <table className="w-full">
+          <thead className="border-b-2 border-[#C9B458]">
             <tr>
-              <th className="pb-2 text-lg">Dish</th>
-              <th className="pb-2 text-lg">Description</th>
-              <th className="pb-2 text-lg text-right">Price</th>
+              <th className="pb-3 text-left text-lg font-serif">Dish</th>
+              <th className="pb-3 text-left text-lg font-serif">Description</th>
+              <th className="pb-3 text-right text-lg font-serif">Price</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {rows.map((cols, idx) => (
-              <tr key={idx} className="py-2">
-                <td className="py-3 align-top font-medium text-base">{cols[0] || ''}</td>
-                <td className="py-3 align-top text-base">{cols[1] || ''}</td>
-                <td className="py-3 align-top text-base text-right">{cols[2] || ''}</td>
+              <tr key={idx}>
+                <td className="py-4 font-medium text-base text-gray-900">{cols[0] || ''}</td>
+                <td className="py-4 text-base text-gray-700">{cols[1] || ''}</td>
+                <td className="py-4 text-base text-gray-900 text-right">{cols[2] || ''}</td>
               </tr>
             ))}
           </tbody>
