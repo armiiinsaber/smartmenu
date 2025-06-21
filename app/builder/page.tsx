@@ -19,6 +19,14 @@ export default function BuilderPage() {
     );
   }
 
+  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setRawText(reader.result as string);
+    reader.readAsText(file);
+  }
+
   async function handleSubmit() {
     if (!restaurantName || !rawText || selectedLangs.length === 0) {
       alert(
@@ -27,14 +35,13 @@ export default function BuilderPage() {
       return;
     }
 
-    // 🚧 Validate each line has 4 parts: Category | Dish | Description | Price
+    // Validate 4-column format: Category|Dish|Description|Price
     const lines = rawText
       .split("\n")
       .map((l) => l.trim())
-      .filter((l) => l.length);
+      .filter((l) => l);
     for (let i = 0; i < lines.length; i++) {
-      const parts = lines[i].split("|");
-      if (parts.length !== 4) {
+      if (lines[i].split("|").length !== 4) {
         alert(
           `Line ${i + 1} is invalid. Each row must be: Category|Dish|Description|Price`
         );
@@ -54,14 +61,11 @@ export default function BuilderPage() {
         }),
       });
       const payload = await res.json();
-
       if (!res.ok) {
-        alert(`Error ${res.status}: ${payload.error || JSON.stringify(payload)}`);
+        alert(`Error ${res.status}: ${payload.error}`);
         setLoading(false);
         return;
       }
-
-      // Auto-store & redirect
       sessionStorage.setItem(
         `menu-${payload.slug}`,
         JSON.stringify({
@@ -70,68 +74,85 @@ export default function BuilderPage() {
         })
       );
       router.push(`/menu/${payload.slug}`);
-    } catch (error: any) {
-      alert(`Network error: ${error.message || error}`);
+    } catch (e: any) {
+      alert(`Network error: ${e.message}`);
       setLoading(false);
     }
   }
 
-  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setRawText(reader.result as string);
-    };
-    reader.readAsText(file);
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-xl bg-white shadow-lg rounded-2xl p-6">
-        <h1 className="text-2xl font-semibold mb-4 text-center">Acarte Builder</h1>
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        background:
+          "linear-gradient(130deg, #FAF8F4 0%, #F5F1EC 50%, #FAF8F4 100%)",
+        backgroundSize: "200% 200%",
+        animation: "gradientShift 10s ease infinite",
+      }}
+    >
+      <div className="w-full max-w-xl bg-white bg-opacity-60 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
+        <h1 className="text-4xl font-serif text-center text-gray-900 mb-6">
+          Acarte
+        </h1>
 
-        <div className="space-y-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+          className="space-y-6"
+        >
+          {/* Restaurant Name */}
           <div>
-            <label className="block text-sm font-medium mb-1">Restaurant Name</label>
+            <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2">
+              Restaurant Name
+            </label>
             <input
               type="text"
               value={restaurantName}
               onChange={(e) => setRestaurantName(e.target.value)}
               placeholder="e.g. Cipriani"
               disabled={loading}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              className="w-full bg-transparent border-b-2 border-gray-300 py-2 focus:border-[#C9B458] outline-none transition"
             />
           </div>
 
+          {/* Menu Text */}
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Paste menu text <span className="font-semibold">(Category|Dish|Description|Price)</span>
+            <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2">
+              Paste menu text{" "}
+              <span className="font-semibold">(Category|Dish|Description|Price)</span>
             </label>
             <textarea
               value={rawText}
               onChange={(e) => setRawText(e.target.value)}
               rows={6}
-              placeholder="Appetizer|Caper Berry Salad|Fresh caper berries, lemon zest|12"
+              placeholder="Antipasti|Pappa al Pomodoro|Traditional Tuscan tomato and bread soup|$22"
               disabled={loading}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              className="w-full bg-transparent border-b-2 border-gray-300 py-2 focus:border-[#C9B458] outline-none transition"
             />
           </div>
 
+          {/* File Upload */}
           <div>
-            <label className="block text-sm font-medium mb-1">Or upload file</label>
+            <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2">
+              Or upload file
+            </label>
             <input
               type="file"
               accept=".txt,.csv"
               ref={fileInputRef}
               onChange={handleFileUpload}
-              className="w-full"
               disabled={loading}
+              className="text-gray-700"
             />
           </div>
 
+          {/* Language Selector */}
           <div>
-            <label className="block text-sm font-medium mb-1">Select languages (up to 10)</label>
+            <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2">
+              Your Guests Speak
+            </label>
             <div className="flex flex-wrap gap-2">
               {languages.map((lang) => (
                 <button
@@ -139,9 +160,9 @@ export default function BuilderPage() {
                   type="button"
                   onClick={() => toggleLang(lang)}
                   disabled={loading}
-                  className={`px-3 py-1 rounded-full text-sm border transition ${
+                  className={`px-3 py-1 rounded-full text-sm font-medium border transition ${
                     selectedLangs.includes(lang)
-                      ? "bg-gray-800 text-white border-gray-800"
+                      ? "bg-[#C9B458] text-white border-[#C9B458]"
                       : "bg-white text-gray-800 border-gray-300 hover:bg-gray-100"
                   }`}
                 >
@@ -151,21 +172,37 @@ export default function BuilderPage() {
             </div>
           </div>
 
+          {/* Submit */}
           <div className="text-center">
             <button
-              onClick={handleSubmit}
+              type="submit"
               disabled={loading}
-              className={`mt-4 px-6 py-2 rounded-lg font-medium transition ${
+              className={`mt-4 px-8 py-3 rounded-full font-semibold transition ${
                 loading
                   ? "bg-gray-400 text-gray-200 cursor-not-allowed"
-                  : "bg-gray-800 text-white hover:bg-gray-700"
+                  : "bg-[#C9B458] text-white hover:bg-opacity-90"
               }`}
             >
-              {loading ? "Generating…" : "Generate Menus"}
+              {loading ? "Generating…" : "Generate Menu"}
             </button>
           </div>
-        </div>
+        </form>
       </div>
+
+      {/* Global keyframes for the background animation */}
+      <style jsx global>{`
+        @keyframes gradientShift {
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0% 50%;
+          }
+        }
+      `}</style>
     </div>
   );
 }
