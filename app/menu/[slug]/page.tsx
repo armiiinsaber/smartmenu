@@ -37,18 +37,16 @@ export default function MenuPage() {
     return <p className="text-center mt-12 text-gray-600">Loading menu...</p>;
   }
 
-  // 1) Split lines → [category, name, desc, price]
+  // Parse & group by Category|Dish|Description|Price
   const rows = translations[currentLang]
     .split('\n')
     .map(line => line.split('|').map(cell => cell.trim()))
-    .filter(parts => parts.length >= 3);
+    .filter(parts => parts.length >= 4);
 
-  // 2) Build entries
   const entries: MenuEntry[] = rows.map(
     ([category, name, desc, price]) => ({ category, name, desc, price })
   );
 
-  // 3) Group by category
   const grouped = entries.reduce((acc: Record<string, MenuEntry[]>, e) => {
     (acc[e.category] = acc[e.category] || []).push(e);
     return acc;
@@ -67,16 +65,16 @@ export default function MenuPage() {
         <header className="text-center mb-8">
           <h1 className="text-4xl font-serif text-gray-900">{restaurantName}</h1>
           <div className="mt-2 h-1 w-24 bg-[#C9B458] mx-auto"></div>
-          <div className="text-[#C9B458] text-2xl mt-4">❧</div>
+          {/* ❧ Removed per request */}
         </header>
 
-        {/* Language Selector */}
-        <div className="flex flex-wrap justify-center gap-3 mb-8">
+        {/* Language Selector (one-line, scrollable) */}
+        <div className="mb-8 -mx-6 px-6 overflow-x-auto whitespace-nowrap">
           {Object.keys(translations).map(lang => (
             <button
               key={lang}
               onClick={() => setCurrentLang(lang)}
-              className={`px-4 py-2 text-sm font-semibold rounded-full border transition-colors disabled:opacity-50 ${
+              className={`inline-block mx-1 px-4 py-2 text-sm font-semibold rounded-full border transition-colors whitespace-normal ${
                 currentLang === lang
                   ? 'bg-[#C9B458] text-white border-[#C9B458]'
                   : 'bg-transparent text-gray-900 border-gray-300 hover:bg-gray-100'
@@ -87,16 +85,13 @@ export default function MenuPage() {
           ))}
         </div>
 
-        {/* Categories & Items */}
+        {/* Sections & Items */}
         <div className="space-y-16">
           {categories.map((category) => (
             <section key={category}>
-              {/* Category Title */}
               <h2 className="text-2xl font-serif text-center text-gray-900 uppercase tracking-widest mb-4">
                 {category}
               </h2>
-
-              {/* Items List */}
               <ul className="space-y-8">
                 {grouped[category].map((item, idx) => (
                   <li key={idx} className="space-y-1">
