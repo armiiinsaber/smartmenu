@@ -1,36 +1,57 @@
 "use client";
 
-import { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 export default function BuilderPage() {
   const router = useRouter();
-  const [restaurantName, setRestaurantName] = useState('');
-  const [rawText, setRawText] = useState('');
+  const [restaurantName, setRestaurantName] = useState("");
+  const [rawText, setRawText] = useState("");
   const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const languages = ['en', 'es', 'fr', 'de', 'it', 'pt', 'zh', 'ja', 'ko', 'ru'];
+  const languages = ["en", "es", "fr", "de", "it", "pt", "zh", "ja", "ko", "ru"];
 
   function toggleLang(lang: string) {
-    setSelectedLangs(prev =>
-      prev.includes(lang) ? prev.filter(l => l !== lang) : [...prev, lang]
+    setSelectedLangs((prev) =>
+      prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
     );
   }
 
   async function handleSubmit() {
     if (!restaurantName || !rawText || selectedLangs.length === 0) {
-      alert('Please fill out restaurant, menu text, and select at least one language.');
+      alert(
+        "Please fill out restaurant name, menu text, and select at least one language."
+      );
       return;
+    }
+
+    // 🚧 Validate each line has 4 parts: Category | Dish | Description | Price
+    const lines = rawText
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length);
+    for (let i = 0; i < lines.length; i++) {
+      const parts = lines[i].split("|");
+      if (parts.length !== 4) {
+        alert(
+          `Line ${i + 1} is invalid. Each row must be: Category|Dish|Description|Price`
+        );
+        return;
+      }
     }
 
     setLoading(true);
     try {
-      const res = await fetch('/api/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ restaurantName, text: rawText, languages: selectedLangs }),
+      const res = await fetch("/api/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          restaurantName,
+          text: rawText,
+          languages: selectedLangs,
+        }),
       });
       const payload = await res.json();
 
@@ -40,10 +61,13 @@ export default function BuilderPage() {
         return;
       }
 
-      // Persist and redirect to menu display
+      // Auto-store & redirect
       sessionStorage.setItem(
         `menu-${payload.slug}`,
-        JSON.stringify({ restaurantName: payload.restaurantName, translations: payload.translations })
+        JSON.stringify({
+          restaurantName: payload.restaurantName,
+          translations: payload.translations,
+        })
       );
       router.push(`/menu/${payload.slug}`);
     } catch (error: any) {
@@ -63,64 +87,62 @@ export default function BuilderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF8F4] flex items-center justify-center p-6">
-      <div className="w-full max-w-lg bg-white shadow-lg rounded-2xl p-8 space-y-8">
-        <h1 className="text-4xl font-serif text-gray-900 text-center">Acarte</h1>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-xl bg-white shadow-lg rounded-2xl p-6">
+        <h1 className="text-2xl font-semibold mb-4 text-center">Acarte Builder</h1>
 
-        <div className="space-y-6">
-          {/* Restaurant input */}
+        <div className="space-y-4">
           <div>
-            <label className="block text-xs uppercase text-gray-600 mb-2">Restaurant</label>
+            <label className="block text-sm font-medium mb-1">Restaurant Name</label>
             <input
               type="text"
               value={restaurantName}
-              onChange={e => setRestaurantName(e.target.value)}
+              onChange={(e) => setRestaurantName(e.target.value)}
               placeholder="e.g. Cipriani"
               disabled={loading}
-              className="w-full border-b-2 border-gray-300 focus:border-[#C9B458] focus:outline-none pb-2 text-gray-900"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
             />
           </div>
 
-          {/* Menu text area */}
           <div>
-            <label className="block text-xs uppercase text-gray-600 mb-2">Today’s Menu</label>
+            <label className="block text-sm font-medium mb-1">
+              Paste menu text <span className="font-semibold">(Category|Dish|Description|Price)</span>
+            </label>
             <textarea
               value={rawText}
-              onChange={e => setRawText(e.target.value)}
+              onChange={(e) => setRawText(e.target.value)}
               rows={6}
-              placeholder="Enter each line as Dish|Description|Price"
+              placeholder="Appetizer|Caper Berry Salad|Fresh caper berries, lemon zest|12"
               disabled={loading}
-              className="w-full border-b-2 border-gray-300 focus:border-[#C9B458] focus:outline-none pb-2 text-gray-900"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
             />
           </div>
 
-          {/* File upload */}
           <div>
-            <label className="block text-xs uppercase text-gray-600 mb-2">Or upload menu file</label>
+            <label className="block text-sm font-medium mb-1">Or upload file</label>
             <input
               type="file"
-              accept=".txt,.csv,.xlsx"
+              accept=".txt,.csv"
               ref={fileInputRef}
               onChange={handleFileUpload}
+              className="w-full"
               disabled={loading}
-              className="text-sm text-gray-500"
             />
           </div>
 
-          {/* Language selection */}
           <div>
-            <label className="block text-xs uppercase text-gray-600 mb-2">Your Guests Speak</label>
-            <div className="flex flex-wrap gap-3">
-              {languages.map(lang => (
+            <label className="block text-sm font-medium mb-1">Select languages (up to 10)</label>
+            <div className="flex flex-wrap gap-2">
+              {languages.map((lang) => (
                 <button
                   key={lang}
                   type="button"
                   onClick={() => toggleLang(lang)}
                   disabled={loading}
-                  className={`px-4 py-2 text-sm font-semibold rounded-full border transition-colors disabled:opacity-50 ${
+                  className={`px-3 py-1 rounded-full text-sm border transition ${
                     selectedLangs.includes(lang)
-                      ? 'bg-gray-900 text-white border-gray-900'
-                      : 'bg-transparent text-gray-900 border-gray-300 hover:bg-gray-100'
+                      ? "bg-gray-800 text-white border-gray-800"
+                      : "bg-white text-gray-800 border-gray-300 hover:bg-gray-100"
                   }`}
                 >
                   {lang.toUpperCase()}
@@ -129,18 +151,17 @@ export default function BuilderPage() {
             </div>
           </div>
 
-          {/* Submit button */}
           <div className="text-center">
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className={`px-8 py-3 font-serif uppercase tracking-wide border ${
+              className={`mt-4 px-6 py-2 rounded-lg font-medium transition ${
                 loading
-                  ? 'text-gray-400 border-gray-300 cursor-not-allowed'
-                  : 'text-[#C9B458] border-[#C9B458] hover:bg-[#C9B458] hover:text-white'
-              } transition-colors`}
+                  ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                  : "bg-gray-800 text-white hover:bg-gray-700"
+              }`}
             >
-              {loading ? 'Generating…' : 'Generate Menus'}
+              {loading ? "Generating…" : "Generate Menus"}
             </button>
           </div>
         </div>
