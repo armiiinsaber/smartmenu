@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function BuilderPage() {
@@ -11,7 +11,7 @@ export default function BuilderPage() {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const languages = ["en", "es", "fr", "de", "it", "pt", "zh", "ja", "ko", "ru"];
+  const languages = ["en","es","fr","de","it","pt","zh","ja","ko","ru"];
 
   function toggleLang(lang: string) {
     setSelectedLangs((prev) =>
@@ -34,16 +34,12 @@ export default function BuilderPage() {
       );
       return;
     }
-
-    // Validate 4-column format: Category|Dish|Description|Price
-    const lines = rawText
-      .split("\n")
-      .map((l) => l.trim())
-      .filter((l) => l);
+    // simple 4-column validation
+    const lines = rawText.split("\n").map((l) => l.trim()).filter(Boolean);
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].split("|").length !== 4) {
         alert(
-          `Line ${i + 1} is invalid. Each row must be: Category|Dish|Description|Price`
+          `Line ${i + 1} invalid. Use Category|Dish|Description|Price.`
         );
         return;
       }
@@ -80,6 +76,9 @@ export default function BuilderPage() {
     }
   }
 
+  // Staggered animation delays
+  const delays = ["100ms","200ms","300ms","400ms","500ms"];
+
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4"
@@ -102,9 +101,12 @@ export default function BuilderPage() {
           }}
           className="space-y-6"
         >
-          {/* Restaurant Name */}
-          <div>
-            <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2">
+          {/* 1) Restaurant Name */}
+          <div
+            className="group fade-in-up"
+            style={{ animationDelay: delays[0] }}
+          >
+            <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2 pb-1 transition-all duration-300 group-focus-within:border-b-2 group-focus-within:border-[#C9B458]">
               Restaurant Name
             </label>
             <input
@@ -113,13 +115,16 @@ export default function BuilderPage() {
               onChange={(e) => setRestaurantName(e.target.value)}
               placeholder="e.g. Cipriani"
               disabled={loading}
-              className="w-full bg-transparent border-b-2 border-gray-300 py-2 focus:border-[#C9B458] outline-none transition"
+              className="w-full bg-transparent border-b-2 border-gray-300 py-2 focus:border-[#C9B458] outline-none transition-colors duration-300"
             />
           </div>
 
-          {/* Menu Text */}
-          <div>
-            <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2">
+          {/* 2) Menu Text */}
+          <div
+            className="fade-in-up"
+            style={{ animationDelay: delays[1] }}
+          >
+            <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2 pb-1 transition-all duration-300 group-focus-within:border-b-2 group-focus-within:border-[#C9B458]">
               Paste menu text{" "}
               <span className="font-semibold">(Category|Dish|Description|Price)</span>
             </label>
@@ -129,12 +134,15 @@ export default function BuilderPage() {
               rows={6}
               placeholder="Antipasti|Pappa al Pomodoro|Traditional Tuscan tomato and bread soup|$22"
               disabled={loading}
-              className="w-full bg-transparent border-b-2 border-gray-300 py-2 focus:border-[#C9B458] outline-none transition"
+              className="w-full bg-transparent border-b-2 border-gray-300 py-2 focus:border-[#C9B458] outline-none transition-colors duration-300"
             />
           </div>
 
-          {/* File Upload */}
-          <div>
+          {/* 3) File Upload */}
+          <div
+            className="fade-in-up"
+            style={{ animationDelay: delays[2] }}
+          >
             <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2">
               Or upload file
             </label>
@@ -148,8 +156,11 @@ export default function BuilderPage() {
             />
           </div>
 
-          {/* Language Selector */}
-          <div>
+          {/* 4) Language Selector */}
+          <div
+            className="fade-in-up"
+            style={{ animationDelay: delays[3] }}
+          >
             <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2">
               Your Guests Speak
             </label>
@@ -172,15 +183,18 @@ export default function BuilderPage() {
             </div>
           </div>
 
-          {/* Submit */}
-          <div className="text-center">
+          {/* 5) Submit */}
+          <div
+            className="text-center fade-in-up"
+            style={{ animationDelay: delays[4] }}
+          >
             <button
               type="submit"
               disabled={loading}
-              className={`mt-4 px-8 py-3 rounded-full font-semibold transition ${
+              className={`mt-4 px-8 py-3 rounded-full font-semibold transition transform duration-200 ${
                 loading
                   ? "bg-gray-400 text-gray-200 cursor-not-allowed"
-                  : "bg-[#C9B458] text-white hover:bg-opacity-90"
+                  : "bg-[#C9B458] text-white hover:scale-105 hover:shadow-lg"
               }`}
             >
               {loading ? "Generating…" : "Generate Menu"}
@@ -189,19 +203,22 @@ export default function BuilderPage() {
         </form>
       </div>
 
-      {/* Global keyframes for the background animation */}
+      {/* Global Styles for animations */}
       <style jsx global>{`
         @keyframes gradientShift {
-          0% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-          100% {
-            background-position: 0% 50%;
-          }
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
         }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in-up {
+          opacity: 0;
+          animation: fadeInUp 0.6s ease forwards;
+        }
+        /* Stagger delays set inline */
       `}</style>
     </div>
   );
