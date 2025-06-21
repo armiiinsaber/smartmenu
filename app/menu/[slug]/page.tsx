@@ -37,7 +37,7 @@ export default function MenuPage() {
     return <p className="text-center mt-12 text-gray-600">Loading menu...</p>;
   }
 
-  // Parse & group all four columns: Category|Dish|Description|Price
+  // Parse and group Category|Dish|Description|Price
   const rows = translations[currentLang]
     .split('\n')
     .map(line => line.split('|').map(cell => cell.trim()))
@@ -57,7 +57,7 @@ export default function MenuPage() {
   return (
     <div className="min-h-screen bg-[#FAF8F4] text-gray-900 px-6 py-12">
       <div className="max-w-2xl mx-auto bg-white shadow-2xl rounded-2xl p-12 border-2 border-[#C9B458] relative overflow-hidden">
-        {/* Decorative corners */}
+        {/* Gold corner dingbats */}
         <div className="absolute top-4 left-4 text-[#C9B458] text-2xl">❖</div>
         <div className="absolute bottom-4 right-4 text-[#C9B458] text-2xl">❖</div>
 
@@ -86,7 +86,7 @@ export default function MenuPage() {
           ))}
         </div>
 
-        {/* Each Category Section */}
+        {/* Menu Sections */}
         <div className="space-y-20">
           {categories.map(category => (
             <section key={category} className="mt-12">
@@ -95,13 +95,14 @@ export default function MenuPage() {
                 {category}
               </h2>
 
-              {/* Item List using CSS Grid */}
+              {/* Items using CSS Grid */}
               <ul className="space-y-6 mt-6">
                 {grouped[category].map((item, idx) => (
                   <li
                     key={idx}
                     className="grid grid-cols-[1fr_auto] items-start gap-x-4"
                   >
+                    {/* Dish name + description */}
                     <div>
                       <h3 className="font-serif text-xl uppercase tracking-wide leading-snug text-gray-900">
                         {item.name}
@@ -112,6 +113,8 @@ export default function MenuPage() {
                         </p>
                       )}
                     </div>
+
+                    {/* Price aligned right */}
                     <span className="font-serif text-xl leading-snug text-gray-900">
                       {item.price}
                     </span>
