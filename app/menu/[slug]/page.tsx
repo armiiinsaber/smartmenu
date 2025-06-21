@@ -5,15 +5,11 @@ import { useParams } from 'next/navigation';
 
 type TranslationsMap = Record<string, string>;
 
-interface MenuItem {
+interface MenuEntry {
+  category: string;
   name: string;
   desc?: string;
   price?: string;
-}
-
-interface MenuSection {
-  category: string;
-  items: MenuItem[];
 }
 
 export default function MenuPage() {
@@ -41,36 +37,24 @@ export default function MenuPage() {
     return <p className="text-center mt-12 text-gray-600">Loading menu...</p>;
   }
 
-  // Build sections by detecting single-field vs. triple-field lines
-  const rawLines = translations[currentLang]
+  // 1) Split lines → [category, name, desc, price]
+  const rows = translations[currentLang]
     .split('\n')
-    .map(line => line.trim())
-    .filter(line => line !== '');
+    .map(line => line.split('|').map(cell => cell.trim()))
+    .filter(parts => parts.length >= 3);
 
-  const sections: MenuSection[] = [];
-  let currentSection: MenuSection | null = null;
+  // 2) Build entries
+  const entries: MenuEntry[] = rows.map(
+    ([category, name, desc, price]) => ({ category, name, desc, price })
+  );
 
-  rawLines.forEach(line => {
-    const parts = line.split('|').map(p => p.trim());
-    if (parts.length === 1) {
-      // New category header
-      currentSection = { category: parts[0], items: [] };
-      sections.push(currentSection);
-    } else if (parts.length >= 3) {
-      // Menu item under current category
-      // If no category defined yet, bucket into "Menu"
-      if (!currentSection) {
-        currentSection = { category: 'Menu', items: [] };
-        sections.push(currentSection);
-      }
-      currentSection.items.push({
-        name: parts[0],
-        desc: parts[1],
-        price: parts[2],
-      });
-    }
-    // ignore any malformed lines
-  });
+  // 3) Group by category
+  const grouped = entries.reduce((acc: Record<string, MenuEntry[]>, e) => {
+    (acc[e.category] = acc[e.category] || []).push(e);
+    return acc;
+  }, {});
+
+  const categories = Object.keys(grouped);
 
   return (
     <div className="min-h-screen bg-[#FAF8F4] text-gray-900 px-6 py-12">
@@ -103,24 +87,19 @@ export default function MenuPage() {
           ))}
         </div>
 
-        {/* Sections & Items */}
+        {/* Categories & Items */}
         <div className="space-y-16">
-          {sections.map((section, si) => (
-            <section key={si}>
+          {categories.map((category) => (
+            <section key={category}>
               {/* Category Title */}
-              <h2 className="text-2xl font-serif text-center text-gray-900 uppercase tracking-widest">
-                {section.category}
+              <h2 className="text-2xl font-serif text-center text-gray-900 uppercase tracking-widest mb-4">
+                {category}
               </h2>
-              <div className="flex justify-center my-4 items-center">
-                <span className="block h-px w-24 bg-[#C9B458]" />
-                <span className="mx-4 text-[#C9B458] text-lg">❧</span>
-                <span className="block h-px w-24 bg-[#C9B458]" />
-              </div>
 
-              {/* Item List */}
+              {/* Items List */}
               <ul className="space-y-8">
-                {section.items.map((item, idx) => (
-                  <li key={idx} className="space-y-2">
+                {grouped[category].map((item, idx) => (
+                  <li key={idx} className="space-y-1">
                     <div className="flex items-center">
                       <h3 className="font-serif text-xl text-gray-900 uppercase tracking-wide">
                         {item.name}
