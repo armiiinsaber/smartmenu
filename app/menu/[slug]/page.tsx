@@ -36,37 +36,36 @@ export default function MenuPage() {
     return <p className="text-center mt-12 text-gray-600">Loading menu…</p>;
   }
 
-  // parse Category|Dish|Description|Price
+  // Parse Category|Dish|Description|Price
   const rows = translations[currentLang]
+    .trim()
     .split('\n')
     .map(line => line.split('|').map(cell => cell.trim()))
     .filter(parts => parts.length >= 4);
 
-  const entries: MenuEntry[] = rows.map(
+  const entries = rows.map(
     ([category, name, desc, price]) => ({ category, name, desc, price })
   );
 
-  const grouped = entries.reduce<Record<string, MenuEntry[]>>((acc, e) => {
+  const grouped = entries.reduce<Record<string, typeof entries>>((acc, e) => {
     (acc[e.category] = acc[e.category] || []).push(e);
     return acc;
-  }, {});
+  }, {} as any);
 
   return (
-    <div className="min-h-screen bg-[#FAF8F4] text-gray-900 px-6 py-12">
-      <div className="max-w-2xl mx-auto bg-white shadow-2xl rounded-2xl p-12 border-2 border-[#C9B458] relative overflow-hidden">
-        {/* Gold corner dingbats */}
-        <div className="absolute top-4 left-4 text-[#C9B458] text-2xl">❖</div>
-        <div className="absolute bottom-4 right-4 text-[#C9B458] text-2xl">❖</div>
-
-        {/* Restaurant Title */}
-        <header className="text-center mb-10">
-          <h1 className="text-5xl font-serif leading-tight">{restaurantName}</h1>
+    <div className="min-h-screen bg-[#FAF8F4] px-6 py-12">
+      <div className="max-w-2xl mx-auto bg-white shadow-2xl rounded-2xl p-16 border border-[#C9B458]">
+        {/* Restaurant Name */}
+        <header className="text-center mb-12">
+          <h1 className="text-5xl font-serif leading-tight text-gray-900">
+            {restaurantName}
+          </h1>
           <div className="mt-2 h-1 w-24 bg-[#C9B458] mx-auto"></div>
         </header>
 
         {/* Language Row */}
-        <div className="mb-8 -mx-6 px-6 overflow-x-auto whitespace-nowrap">
-          {Object.keys(translations).map(lang => (
+        <div className="mb-10 -mx-6 px-6 overflow-x-auto whitespace-nowrap">
+          {Object.keys(translations).map((lang) => (
             <button
               key={lang}
               onClick={() => setCurrentLang(lang)}
@@ -81,29 +80,38 @@ export default function MenuPage() {
           ))}
         </div>
 
-        {/* Menu Sections */}
+        {/* Sections */}
         <div className="space-y-20">
           {Object.entries(grouped).map(([category, items]) => (
             <section key={category}>
-              <h2 className="text-2xl font-serif uppercase tracking-wider leading-tight text-center mb-6">
+              {/* Category Header */}
+              <h2 className="text-2xl font-serif uppercase tracking-wider leading-tight text-center text-gray-900">
                 {category}
               </h2>
-              <ul className="space-y-6">
+              <div className="flex items-center justify-center my-4 gap-2">
+                <span className="block flex-grow border-b border-dotted border-gray-300/20"></span>
+                <span className="text-[#C9B458]">❧</span>
+                <span className="block flex-grow border-b border-dotted border-gray-300/20"></span>
+              </div>
+
+              {/* Items */}
+              <ul className="space-y-8">
                 {items.map((item, idx) => (
-                  <li key={idx} className="leader-li flex items-start">
-                    {/* Dish + description */}
-                    <div className="relative z-10 bg-white pr-4">
-                      <h3 className="font-serif text-xl uppercase tracking-wide leading-snug">
+                  <li
+                    key={idx}
+                    className="leader-li grid grid-cols-[1fr_auto] items-start gap-x-4"
+                  >
+                    <div>
+                      <h3 className="font-serif text-xl uppercase tracking-wide leading-snug text-gray-900">
                         {item.name}
                       </h3>
                       {item.desc && (
-                        <p className="text-sm italic leading-relaxed text-gray-700 mt-1 ml-1">
+                        <p className="text-sm italic font-sans leading-normal text-gray-700 mt-1 ml-1">
                           {item.desc}
                         </p>
                       )}
                     </div>
-                    {/* Price */}
-                    <span className="relative z-10 bg-white ml-auto font-serif text-xl leading-snug">
+                    <span className="font-serif text-xl leading-snug text-gray-900">
                       {item.price}
                     </span>
                   </li>
@@ -114,18 +122,19 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* Leader-dot CSS */}
+      {/* Dotted leaders behind each list item */}
       <style jsx global>{`
         .leader-li {
           position: relative;
+          padding-top: 0.25rem; /* bumps the line vertically so the dots hit the middle of the text */
         }
         .leader-li::before {
           content: '';
           position: absolute;
-          left: 1rem;  /* aligns just after the padding of the name container */
-          right: 1rem; /* aligns just before the price container */
-          top: calc(1.5rem + 0.25rem); /* mid‐line of the text */
-          border-bottom: 1px dotted rgba(0, 0, 0, 0.2);
+          left: 0.75rem;    /* align just after name container padding */
+          right: 0.75rem;   /* align just before price container */
+          top: 1.5rem;      /* roughly halfway down the line */
+          border-bottom: 1px dotted rgba(0, 0, 0, 0.1);
           pointer-events: none;
         }
       `}</style>
