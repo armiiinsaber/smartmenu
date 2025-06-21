@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+// Initialize OpenAI client (ensure OPENAI_API_KEY is set)
 const openai = new OpenAI();
 
+// Simple slug generator
 const generateSlug = () => Math.random().toString(36).substring(2, 8);
 
 export async function POST(request: Request) {
@@ -30,10 +32,10 @@ export async function POST(request: Request) {
             role: 'system',
             content:
               'You are an expert restaurant-menu translator.\n' +
-              '• Input format: `Category|Dish|Description|Price`, one item per line.\n' +
+              '• Input format per line: `Category|Dish|Description|Price`.\n' +
               '• Translate all four fields into the target language, preserving the pipe delimiters.\n' +
-              '• Do not drop, merge, or reorder lines—output exactly the same number of lines as input.\n' +
-              '• Output only the translated lines, one per input line, with no numbering or extra text.'
+              '• Do not drop, merge, reorder, or add lines—output exactly one translated line per input line.\n' +
+              '• No numbering, bullets, or extra text—only the translated pipe-delimited lines.'
           },
           {
             role: 'user',
@@ -45,16 +47,15 @@ export async function POST(request: Request) {
           model: 'gpt-4o-mini',
           messages,
           temperature: 0,
-          max_tokens: 2000,
         });
 
-        translations[lang] = completion.choices?.[0].message?.content.trim() || '';
+        translations[lang] = completion.choices?.[0].message?.content.trim() ?? '';
       })
     );
 
     return NextResponse.json({ slug, restaurantName, translations });
   } catch (err: any) {
-    console.error(err);
+    console.error('Translate API Error:', err);
     return NextResponse.json(
       { error: err.message || 'Internal Server Error' },
       { status: 500 }
