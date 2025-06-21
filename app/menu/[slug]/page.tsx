@@ -47,10 +47,10 @@ export default function MenuPage() {
     ([category, name, desc, price]) => ({ category, name, desc, price })
   );
 
-  const grouped = entries.reduce<Record<string, typeof entries>>((acc, e) => {
+  const grouped = entries.reduce<Record<string, MenuEntry[]>>((acc, e) => {
     (acc[e.category] = acc[e.category] || []).push(e);
     return acc;
-  }, {} as any);
+  }, {});
 
   return (
     <div className="min-h-screen bg-[#FAF8F4] px-6 py-12">
@@ -80,7 +80,7 @@ export default function MenuPage() {
           ))}
         </div>
 
-        {/* Sections */}
+        {/* Menu Sections */}
         <div className="space-y-20">
           {Object.entries(grouped).map(([category, items]) => (
             <section key={category}>
@@ -88,11 +88,8 @@ export default function MenuPage() {
               <h2 className="text-2xl font-serif uppercase tracking-wider leading-tight text-center text-gray-900">
                 {category}
               </h2>
-              <div className="flex items-center justify-center my-4 gap-2">
-                <span className="block flex-grow border-b border-dotted border-gray-300/20"></span>
-                <span className="text-[#C9B458]">❧</span>
-                <span className="block flex-grow border-b border-dotted border-gray-300/20"></span>
-              </div>
+              {/* Simple dotted divider */}
+              <div className="border-b border-dotted border-gray-300/20 my-4"></div>
 
               {/* Items */}
               <ul className="space-y-8">
@@ -122,18 +119,18 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* Dotted leaders behind each list item */}
+      {/* Global CSS for dotted leaders */}
       <style jsx global>{`
         .leader-li {
           position: relative;
-          padding-top: 0.25rem; /* bumps the line vertically so the dots hit the middle of the text */
+          padding-top: 0.25rem;
         }
         .leader-li::before {
           content: '';
           position: absolute;
-          left: 0.75rem;    /* align just after name container padding */
-          right: 0.75rem;   /* align just before price container */
-          top: 1.5rem;      /* roughly halfway down the line */
+          left: 0.75rem;
+          right: 0.75rem;
+          top: 1.5rem;
           border-bottom: 1px dotted rgba(0, 0, 0, 0.1);
           pointer-events: none;
         }
