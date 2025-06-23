@@ -7,7 +7,7 @@ import { useParams } from "next/navigation";
  * Guest‑facing menu page (print‑ready)
  * -----------------------------------
  * • Floating "Download PDF" button triggers browser print (users can Save as PDF).
- * • @media print rules ensure clean A4/Letter output: ½‑inch margins, no shadows, whole categories kept together.
+ * • Print tweaks: 1‑inch page margins, generous inner padding, and no orphaned header.
  */
 
 type TranslationsMap = Record<string, string>;
@@ -26,7 +26,7 @@ export default function MenuPage() {
   const [translations, setTranslations] = useState<TranslationsMap>({});
   const [currentLang, setCurrentLang] = useState("");
 
-  // Load menu JSON from sessionStorage (set by the builder)
+  /* Load menu JSON from sessionStorage */
   useEffect(() => {
     if (!slug) return;
 
@@ -42,24 +42,19 @@ export default function MenuPage() {
     }
   }, [slug]);
 
-  // Browser print handler – opens native print dialog
+  /* Print handler */
   const handlePrint = useCallback(() => {
-    if (typeof window !== "undefined") {
-      window.print();
-    }
+    if (typeof window !== "undefined") window.print();
   }, []);
 
-  if (!restaurantName || !currentLang) {
-    return (
-      <p className="text-center mt-12 text-gray-600">Loading menu…</p>
-    );
-  }
+  if (!restaurantName || !currentLang)
+    return <p className="text-center mt-12 text-gray-600">Loading menu…</p>;
 
-  // Parse "Category | Dish | Description | Price" rows
+  /* Parse rows */
   const rows = translations[currentLang]
     .trim()
     .split("\n")
-    .map((line) => line.split("|").map((cell) => cell.trim()))
+    .map((line) => line.split("|").map((c) => c.trim()))
     .filter((parts) => parts.length >= 4);
 
   const entries: MenuEntry[] = rows.map(([category, name, desc, price]) => ({
@@ -69,7 +64,6 @@ export default function MenuPage() {
     price,
   }));
 
-  // Group items by category
   const grouped = entries.reduce<Record<string, MenuEntry[]>>((acc, e) => {
     (acc[e.category] = acc[e.category] || []).push(e);
     return acc;
@@ -77,7 +71,7 @@ export default function MenuPage() {
 
   return (
     <>
-      {/* Floating button – hidden in print view */}
+      {/* Download‑PDF button */}
       <div className="print:hidden fixed top-4 right-4 z-50">
         <button
           onClick={handlePrint}
@@ -87,18 +81,18 @@ export default function MenuPage() {
         </button>
       </div>
 
-      {/* Menu container */}
+      {/* Menu wrapper */}
       <div className="menu-container min-h-screen bg-[#FAF8F4] px-4 sm:px-6 md:px-8 py-8 md:py-12">
-        <div className="max-w-2xl mx-auto bg-white shadow-2xl rounded-2xl p-8 md:p-16 border border-[#C9B458] print:shadow-none print:border-0 print:p-0">
-          {/* Restaurant header */}
-          <header className="text-center mb-8 md:mb-12">
+        <div className="max-w-2xl mx-auto bg-white shadow-2xl rounded-2xl p-8 md:p-16 border border-[#C9B458] print:shadow-none print:border print:border-[#C9B458] print:rounded print:p-10 print:md:p-16">
+          {/* Header */}
+          <header className="avoid-break text-center mb-8 md:mb-12">
             <h1 className="text-4xl md:text-5xl font-serif leading-tight text-gray-900">
               {restaurantName}
             </h1>
-            <div className="mt-1 h-1 w-20 md:w-24 bg-[#C9B458] mx-auto"></div>
+            <div className="mt-1 h-1 w-20 md:w-24 bg-[#C9B458] mx-auto" />
           </header>
 
-          {/* Language switcher – hide on print */}
+          {/* Language switcher */}
           <div className="print:hidden mb-6 md:mb-10 overflow-x-auto">
             <div className="inline-flex whitespace-nowrap px-4 md:px-6 gap-2 md:gap-3">
               {Object.keys(translations).map((lang) => (
@@ -117,7 +111,7 @@ export default function MenuPage() {
             </div>
           </div>
 
-          {/* Menu sections */}
+          {/* Sections */}
           <div className="space-y-12 md:space-y-20">
             {Object.entries(grouped).map(([category, items]) => (
               <section key={category} className="break-inside-avoid-page">
@@ -125,7 +119,6 @@ export default function MenuPage() {
                   {category}
                 </h2>
                 <div className="border-b border-dotted border-gray-300/20 my-3 md:my-4" />
-
                 <ul className="space-y-6 md:space-y-8">
                   {items.map((item, idx) => (
                     <li
@@ -154,9 +147,9 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* Global CSS (dotted leaders + print tweaks) */}
+      {/* Global styles */}
       <style jsx global>{`
-        /* dotted leader before price */
+        /* dotted leader */
         .leader-li {
           position: relative;
           padding-top: 0.25rem;
@@ -175,20 +168,25 @@ export default function MenuPage() {
         @media print {
           @page {
             size: auto;
-            margin: 0.5in;
+            margin: 1in; /* ⟸ wider page margin */
           }
 
           body {
             background: #ffffff !important;
           }
 
-          /* hide */
           .print\\:hidden {
             display: none !important;
           }
 
           .menu-container {
             background: #ffffff !important;
+          }
+
+          /* Keep header with first section */
+          .avoid-break {
+            break-after: avoid-page;
+            page-break-after: avoid;
           }
 
           .break-inside-avoid-page {
