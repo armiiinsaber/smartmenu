@@ -1,17 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import chromium from "@sparticuz/chromium";
-import puppeteer from "puppeteer-core";
+
+/**
+ *  ➜  Run in the Node.js runtime.
+ *  ➜  Dynamically import puppeteer + chromium so Next.js
+ *      skips them at build-time (no more “module not found”).
+ */
+export const runtime = "nodejs";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
+  // Lazy-load here ⬇⬇⬇
+  const puppeteer = (await import("puppeteer-core")).default;
+  const chromium = (await import("@sparticuz/chromium")).default;
+
+  /* --- the rest of your code stays exactly the same --- */
   const { slug } = params;
   const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
   const proto = host?.startsWith("localhost") ? "http" : "https";
   const url = `${proto}://${host}/menu/${slug}`;
 
-  let browser: puppeteer.Browser | null = null;
+  let browser: Awaited<ReturnType<typeof puppeteer.launch>> | null = null;
   try {
     browser = await puppeteer.launch({
       args: chromium.args,
@@ -19,6 +29,7 @@ export async function GET(
       defaultViewport: chromium.defaultViewport,
       headless: chromium.headless,
     });
+
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: "networkidle0" });
 
