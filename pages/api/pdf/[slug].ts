@@ -1,7 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-/**  Node.js function that lazy-loads puppeteer so Next’s
- *   build pipeline never tries to parse it. Bullet-proof. */
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -12,7 +10,7 @@ export default async function handler(
     return;
   }
 
-  // Lazy-load here ⇣⇣⇣ (no bundling issues)
+  // lazy-load: avoids build-time bundling issues
   const chromium = (await import("@sparticuz/chromium")).default;
   const puppeteer = (await import("puppeteer-core")).default;
 
@@ -41,10 +39,7 @@ export default async function handler(
     res
       .status(200)
       .setHeader("Content-Type", "application/pdf")
-      .setHeader(
-        "Content-Disposition",
-        `inline; filename=menu-${slug}.pdf`
-      )
+      .setHeader("Content-Disposition", `inline; filename=menu-${slug}.pdf`)
       .send(pdf);
   } catch (err) {
     console.error("PDF error", err);
