@@ -4,11 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 
 /**
- * Guest‑facing menu page (print‑ready)
- * -----------------------------------
- * • Keeps restaurant header and first category together (no orphaned title).
- * • Continuous flow – no forced page breaks after categories; thin rule separates them.
- * • 1.5‑inch top/bottom & 1‑inch left/right page margins → ~75 % live area.
+ * Guest‑facing menu page (continuous PDF)
+ * --------------------------------------
+ * • Locks header + first category together.
+ * • Thin rule between categories – *never* a forced page break.
+ * • 1.5‑inch top/bottom, 1.25‑inch left/right print margins ≈ 26 % vertical whitespace.
  */
 
 type TranslationsMap = Record<string, string>;
@@ -30,7 +30,6 @@ export default function MenuPage() {
   /* Load menu JSON from sessionStorage */
   useEffect(() => {
     if (!slug) return;
-
     const stored = sessionStorage.getItem(`menu-${slug}`);
     if (stored) {
       const parsed = JSON.parse(stored) as {
@@ -55,8 +54,8 @@ export default function MenuPage() {
   const rows = translations[currentLang]
     .trim()
     .split("\n")
-    .map((line) => line.split("|").map((c) => c.trim()))
-    .filter((parts) => parts.length >= 4);
+    .map((l) => l.split("|").map((c) => c.trim()))
+    .filter((p) => p.length >= 4);
 
   const entries: MenuEntry[] = rows.map(([category, name, desc, price]) => ({
     category,
@@ -70,10 +69,9 @@ export default function MenuPage() {
     return acc;
   }, {});
 
-  /** ---------------------- JSX ---------------------- */
   return (
     <>
-      {/* Download‑PDF button */}
+      {/* Download‑PDF */}
       <div className="print:hidden fixed top-4 right-4 z-50">
         <button
           onClick={handlePrint}
@@ -83,18 +81,18 @@ export default function MenuPage() {
         </button>
       </div>
 
-      {/* Menu wrapper */}
+      {/* Page wrapper */}
       <div className="menu-container min-h-screen bg-[#FAF8F4] px-4 sm:px-6 md:px-8 py-8 md:py-12">
         <div className="max-w-2xl mx-auto bg-white shadow-2xl rounded-2xl p-8 md:p-16 border border-[#C9B458] print:shadow-none print:border print:border-[#C9B458] print:rounded print:p-12 print:md:p-16">
-          {/* Header */}
-          <header className="no-break-inside text-center mb-8 md:mb-12">
+          {/* Restaurant header */}
+          <header className="no-break text-center mb-8 md:mb-12">
             <h1 className="text-4xl md:text-5xl font-serif leading-tight text-gray-900">
               {restaurantName}
             </h1>
             <div className="mt-1 h-1 w-20 md:w-24 bg-[#C9B458] mx-auto" />
           </header>
 
-          {/* Language switcher – suppressed in print */}
+          {/* Language picker – hidden on print */}
           <div className="print:hidden mb-6 md:mb-10 overflow-x-auto">
             <div className="inline-flex whitespace-nowrap px-4 md:px-6 gap-2 md:gap-3">
               {Object.keys(translations).map((lang) => (
@@ -113,14 +111,13 @@ export default function MenuPage() {
             </div>
           </div>
 
-          {/* Sections */}
+          {/* Menu Sections */}
           <div className="space-y-14 md:space-y-20">
             {Object.entries(grouped).map(([category, items]) => (
-              <section key={category} className="no-break-inside">
+              <section key={category} className="no-break">
                 <h2 className="text-xl md:text-2xl font-serif uppercase tracking-wider leading-tight text-center text-gray-900">
                   {category}
                 </h2>
-                {/* thin separator */}
                 <div className="h-px bg-gray-300 opacity-20 my-5 md:my-6" />
 
                 <ul className="space-y-6 md:space-y-8">
@@ -151,9 +148,8 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* Global styles */}
+      {/* Styles */}
       <style jsx global>{`
-        /* dotted leader */
         .leader-li {
           position: relative;
           padding-top: 0.25rem;
@@ -168,17 +164,19 @@ export default function MenuPage() {
           pointer-events: none;
         }
 
-        /* Avoid breaking inside header/section */
-        .no-break-inside {
-          break-inside: avoid-page;
+        /* prevent page breaks inside these blocks */
+        .no-break {
           page-break-inside: avoid;
+          break-inside: avoid-page;
+          page-break-after: auto;
+          break-after: auto;
         }
 
-        /* PRINT rules */
+        /* PRINT */
         @media print {
           @page {
             size: auto;
-            margin: 1.5in 1in; /* 1.5" top/bottom, 1" left/right ≈ 25 % breathing space */
+            margin: 1.5in 1.25in; /* ≈26 % vertical whitespace */
           }
 
           body {
