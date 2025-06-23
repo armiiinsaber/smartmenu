@@ -4,10 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 
 /**
- * BULLETPROOF PRINT LAYOUT
- * ▸ Header is *locked* to the top of page 1.
- * ▸ First category starts right after—allowed to flow across pages.
- * ▸ 1 in side margins, 1.25 in top/bottom (~25 % breathing space).
+ * BULLETPROOF PRINT + CLEAN DOT‑LEADER
+ * ▸ Header stays on page 1.
+ * ▸ Dotted leader begins **after** dish name, runs to price.
  */
 
 type TranslationsMap = Record<string, string>;
@@ -75,7 +74,7 @@ export default function MenuPage() {
 
       <div className="menu-container min-h-screen bg-[#FAF8F4] px-4 sm:px-6 md:px-8 py-8 md:py-12">
         <div className="max-w-2xl mx-auto bg-white shadow-2xl rounded-2xl p-8 md:p-16 border border-[#C9B458] print:shadow-none print:border print:border-[#C9B458] print:rounded print:p-8">
-          {/* HEADER – cannot break */}
+          {/* HEADER */}
           <header className="print-fixed-header text-center mb-6 md:mb-10">
             <h1 className="text-4xl md:text-5xl font-serif leading-tight text-gray-900">
               {restaurantName}
@@ -102,7 +101,7 @@ export default function MenuPage() {
             </div>
           </div>
 
-          {/* SECTIONS – may break across pages */}
+          {/* SECTIONS */}
           <div className="space-y-14 md:space-y-20">
             {Object.entries(grouped).map(([category, items]) => (
               <section key={category}>
@@ -114,9 +113,10 @@ export default function MenuPage() {
                   {items.map((item, idx) => (
                     <li
                       key={idx}
-                      className="leader-li grid grid-cols-[1fr_auto] gap-x-3 md:gap-x-4"
+                      className="flex items-start gap-x-3 md:gap-x-4"
                     >
-                      <div>
+                      {/* Name + desc */}
+                      <div className="min-w-max">
                         <h3 className="font-serif text-lg md:text-xl uppercase tracking-wide text-gray-900">
                           {item.name}
                         </h3>
@@ -126,7 +126,15 @@ export default function MenuPage() {
                           </p>
                         )}
                       </div>
-                      <span className="font-serif text-lg md:text-xl text-gray-900">
+
+                      {/* Dotted leader */}
+                      <span
+                        aria-hidden="true"
+                        className="flex-grow border-b border-dotted border-gray-300/40 translate-y-2 mx-2"
+                      />
+
+                      {/* Price */}
+                      <span className="font-serif text-lg md:text-xl text-gray-900 min-w-max">
                         {item.price}
                       </span>
                     </li>
@@ -139,21 +147,6 @@ export default function MenuPage() {
       </div>
 
       <style jsx global>{`
-        /* dotted leader */
-        .leader-li {
-          position: relative;
-          padding-top: 0.25rem;
-        }
-        .leader-li::before {
-          content: "";
-          position: absolute;
-          left: 0.75rem;
-          right: 0.75rem;
-          top: 1.2rem;
-          border-bottom: 1px dotted rgba(0, 0, 0, 0.1);
-          pointer-events: none;
-        }
-
         /* Header never splits */
         .print-fixed-header {
           page-break-after: avoid;
