@@ -10,25 +10,27 @@
   },
 
   "dependencies": {
-    "next": "13.4.19",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "react-data-grid": "7.0.0-canary.43",
+    "@sparticuz/chromium": "112.0.0",
     "axios": "1.6.8",
-    "qrcode": "1.5.1",
-    "uuid": "9.0.1",
-    "xlsx": "0.18.5",
+    "next": "13.4.19",
     "openai": "4.11.0",
     "papaparse": "5.4.1",
+    "puppeteer-core": "22.1.1",
+    "qrcode": "1.5.1",
+    "react": "18.2.0",
+    "react-data-grid": "7.0.0-canary.43",
+    "react-dom": "18.2.0",
+    "uuid": "9.0.1",
+    "xlsx": "0.18.5",
     "@supabase/supabase-js": "2.39.5"
   },
 
   "devDependencies": {
-    "typescript": "5.1.6",
-    "@types/react": "18.2.14",
     "@types/node": "20.2.5",
-    "tailwindcss": "^3.4.1",
+    "@types/react": "18.2.14",
+    "autoprefixer": "^10.4.14",
     "postcss": "^8.4.24",
-    "autoprefixer": "^10.4.14"
+    "tailwindcss": "^3.4.1",
+    "typescript": "5.1.6"
   }
 }
