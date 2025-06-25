@@ -4,13 +4,21 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
-/* ─────────────  SAFE PUBLIC CLIENT  ───────────── */
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPA_URL!,
-  process.env.NEXT_PUBLIC_SUPA_ANON!
-);
+/* ───────────  SUPABASE PUBLIC CLIENT  ───────────
+   Uses the variable names you already have in Vercel:
+   • NEXT_PUBLIC_SUPABASE_URL
+   • NEXT_PUBLIC_SUPABASE_ANON_KEY
+-------------------------------------------------- */
+const supabase =
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    ? createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      )
+    : null;
 
-/* ─────────────  TYPES  ───────────── */
+/* ───────────  TYPES  ─────────── */
 type TranslationsMap = Record<string, string>;
 interface MenuEntry {
   category: string;
@@ -26,27 +34,32 @@ export default function MenuPage() {
   const [translations, setTranslations] = useState<TranslationsMap | null>(null);
   const [currentLang, setCurrentLang] = useState("");
 
-  /* ─────────────  LOAD DATA  ───────────── */
+  /* ───────────  LOAD DATA  ─────────── */
   useEffect(() => {
     if (!slug) return;
 
     (async () => {
-      /* 1️⃣ Supabase first */
-      const { data } = await supabase
-        .from("menus")
-        .select("*")
-        .eq("slug", slug.toLowerCase())
-        .single();
+      /* 1️⃣  Supabase (only if client exists) */
+      if (supabase) {
+        try {
+          const { data } = await supabase
+            .from("menus")
+            .select("*")
+            .eq("slug", slug.toLowerCase())
+            .single();
 
-      if (data?.translations) {
-        setRestaurantName(data.restaurant_name ?? data.name ?? "Menu");
-        setTranslations(data.translations as TranslationsMap);
-        const first = Object.keys(data.translations)[0] || "";
-        setCurrentLang(first);
-        return;
+          if (data?.translations) {
+            setRestaurantName(data.restaurant_name ?? data.name ?? "Menu");
+            setTranslations(data.translations as TranslationsMap);
+            setCurrentLang(Object.keys(data.translations)[0] || "");
+            return;
+          }
+        } catch {
+          /* ignore – fall back */
+        }
       }
 
-      /* 2️⃣ Fallback to sessionStorage */
+      /* 2️⃣  sessionStorage fallback (builder preview) */
       const cached = sessionStorage.getItem(`menu-${slug}`);
       if (cached) {
         const { restaurantName, translations } = JSON.parse(cached) as {
@@ -55,24 +68,22 @@ export default function MenuPage() {
         };
         setRestaurantName(restaurantName);
         setTranslations(translations);
-        const first = Object.keys(translations)[0] || "";
-        setCurrentLang(first);
+        setCurrentLang(Object.keys(translations)[0] || "");
         return;
       }
 
-      /* 3️⃣ Nothing found */
+      /* 3️⃣  No data */
       setRestaurantName("Menu unavailable");
       setTranslations({});
     })();
   }, [slug]);
 
-  /* ─────────────  PDF BUTTON  ───────────── */
+  /* ───────────  PDF BUTTON  ─────────── */
   const handlePrint = useCallback(() => {
-    if (!slug) return;
-    window.location.href = `/api/pdf/${slug}`;
+    if (slug) window.location.href = `/api/pdf/${slug}`;
   }, [slug]);
 
-  /* ─────────────  EARLY EXIT  ───────────── */
+  /* ───────────  EARLY STATES  ─────────── */
   if (restaurantName === null || translations === null) {
     return <p className="text-center mt-12 text-gray-600">Loading menu…</p>;
   }
@@ -84,8 +95,17 @@ export default function MenuPage() {
     );
   }
 
-  /* ─────────────  PARSE MENU  ───────────── */
-  const rows = translations[currentLang]
+  const langValue = translations[currentLang];
+  if (typeof langValue !== "string") {
+    return (
+      <p className="text-center mt-12 text-red-600">
+        Menu format error – translation value is not text.
+      </p>
+    );
+  }
+
+  /* ───────────  PARSE MENU  ─────────── */
+  const rows = langValue
     .trim()
     .split("\n")
     .map((l) => l.split("|").map((c) => c.trim()))
@@ -103,7 +123,7 @@ export default function MenuPage() {
     return acc;
   }, {});
 
-  /* ─────────────  RENDER  ───────────── */
+  /* ───────────  RENDER  ─────────── */
   return (
     <>
       {/* Download PDF */}
@@ -116,6 +136,7 @@ export default function MenuPage() {
         </button>
       </div>
 
+      {/* Menu container */}
       <div className="menu-container min-h-screen bg-[#FAF8F4] px-4 sm:px-6 md:px-8 py-8 md:py-12">
         <div className="max-w-2xl mx-auto bg-white shadow-2xl rounded-2xl p-8 md:p-16 border border-[#C9B458] print:shadow-none print:border print:border-[#C9B458] print:rounded print:p-8">
           <header className="print-fixed-header text-center mb-6 md:mb-10">
@@ -128,12 +149,12 @@ export default function MenuPage() {
           {/* Language picker */}
           {Object.keys(translations).length > 1 && (
             <div className="print:hidden mb-6 md:mb-10 overflow-x-auto">
-              <div className="inline-flex whitespace-nowrap px-4 md:px-6 gap-2 md:gap-3">
+              <div className="inline-flex gap-3 px-6">
                 {Object.keys(translations).map((lang) => (
                   <button
                     key={lang}
                     onClick={() => setCurrentLang(lang)}
-                    className={`px-3 md:px-4 py-1 md:py-2 text-xs md:text-sm font-semibold rounded-full border ${
+                    className={`px-4 py-1 text-sm font-semibold rounded-full border ${
                       currentLang === lang
                         ? "bg-[#C9B458] text-white border-[#C9B458]"
                         : "bg-transparent text-gray-900 border-gray-300 hover:bg-gray-100"
@@ -153,17 +174,17 @@ export default function MenuPage() {
                 <h2 className="text-xl md:text-2xl font-serif uppercase tracking-wider text-center text-gray-900">
                   {category}
                 </h2>
-                <div className="h-px bg-gray-300 opacity-20 my-4 md:my-5" />
+                <div className="h-px bg-gray-300 opacity-20 my-4" />
 
-                <ul className="space-y-5 md:space-y-6">
+                <ul className="space-y-6">
                   {items.map((item, idx) => (
-                    <li key={idx} className="flex items-start gap-x-3 md:gap-x-4">
+                    <li key={idx} className="flex items-start gap-4">
                       <div className="flex flex-col min-w-0">
-                        <h3 className="font-serif text-lg md:text-xl uppercase tracking-wide text-gray-900 break-words">
+                        <h3 className="font-serif text-lg uppercase tracking-wide text-gray-900 break-words">
                           {item.name}
                         </h3>
                         {item.desc && (
-                          <p className="text-xs md:text-sm italic text-gray-700 mt-1 ml-1 break-words">
+                          <p className="text-sm italic text-gray-700 break-words">
                             {item.desc}
                           </p>
                         )}
@@ -172,7 +193,7 @@ export default function MenuPage() {
                         aria-hidden="true"
                         className="flex-grow border-b border-dotted border-gray-300/40 translate-y-2 mx-2"
                       />
-                      <span className="font-serif text-lg md:text-xl text-gray-900 min-w-max">
+                      <span className="font-serif text-lg text-gray-900 min-w-max">
                         {item.price}
                       </span>
                     </li>
@@ -184,7 +205,7 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* Print rules */}
+      {/* Print tweaks */}
       <style jsx global>{`
         .print-fixed-header {
           page-break-after: avoid;
