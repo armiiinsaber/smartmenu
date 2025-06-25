@@ -2,6 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
+
+/* ─────────────  SAFE PUBLIC CLIENT  ───────────── */
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPA_URL!,
+  process.env.NEXT_PUBLIC_SUPA_ANON!
+);
 
 /* ─────────────  TYPES  ───────────── */
 type TranslationsMap = Record<string, string>;
@@ -15,8 +22,8 @@ interface MenuEntry {
 export default function MenuPage() {
   const { slug } = useParams() as { slug: string };
 
-  const [restaurantName, setRestaurantName] = useState("");
-  const [translations, setTranslations] = useState<TranslationsMap>({});
+  const [restaurantName, setRestaurantName] = useState<string | null>(null);
+  const [translations, setTranslations] = useState<TranslationsMap | null>(null);
   const [currentLang, setCurrentLang] = useState("");
 
   /* ─────────────  LOAD DATA  ───────────── */
@@ -24,43 +31,38 @@ export default function MenuPage() {
     if (!slug) return;
 
     (async () => {
-      /* 1️⃣  Try Supabase — but only if env-vars are defined */
-      if (process.env.NEXT_PUBLIC_SUPA_URL && process.env.NEXT_PUBLIC_SUPA_ANON) {
-        const { createClient } = await import("@supabase/supabase-js");
-        const supa = createClient(
-          process.env.NEXT_PUBLIC_SUPA_URL,
-          process.env.NEXT_PUBLIC_SUPA_ANON
-        );
+      /* 1️⃣ Supabase first */
+      const { data } = await supabase
+        .from("menus")
+        .select("*")
+        .eq("slug", slug.toLowerCase())
+        .single();
 
-        try {
-          const { data } = await supa
-            .from("menus")
-            .select("*")
-            .eq("slug", slug.toLowerCase())
-            .single();
-
-          if (data) {
-            setRestaurantName(data.restaurant_name ?? data.name ?? "");
-            setTranslations(data.translations as TranslationsMap);
-            setCurrentLang(Object.keys(data.translations)[0] || "");
-            return; // success → stop here
-          }
-        } catch {
-          /* ignore – fall back */
-        }
+      if (data?.translations) {
+        setRestaurantName(data.restaurant_name ?? data.name ?? "Menu");
+        setTranslations(data.translations as TranslationsMap);
+        const first = Object.keys(data.translations)[0] || "";
+        setCurrentLang(first);
+        return;
       }
 
-      /* 2️⃣  Fallback: sessionStorage (builder preview) */
-      const stored = sessionStorage.getItem(`menu-${slug}`);
-      if (stored) {
-        const { restaurantName, translations } = JSON.parse(stored) as {
+      /* 2️⃣ Fallback to sessionStorage */
+      const cached = sessionStorage.getItem(`menu-${slug}`);
+      if (cached) {
+        const { restaurantName, translations } = JSON.parse(cached) as {
           restaurantName: string;
           translations: TranslationsMap;
         };
         setRestaurantName(restaurantName);
         setTranslations(translations);
-        setCurrentLang(Object.keys(translations)[0] || "");
+        const first = Object.keys(translations)[0] || "";
+        setCurrentLang(first);
+        return;
       }
+
+      /* 3️⃣ Nothing found */
+      setRestaurantName("Menu unavailable");
+      setTranslations({});
     })();
   }, [slug]);
 
@@ -70,8 +72,16 @@ export default function MenuPage() {
     window.location.href = `/api/pdf/${slug}`;
   }, [slug]);
 
-  if (!restaurantName || !currentLang) {
+  /* ─────────────  EARLY EXIT  ───────────── */
+  if (restaurantName === null || translations === null) {
     return <p className="text-center mt-12 text-gray-600">Loading menu…</p>;
+  }
+  if (!Object.keys(translations).length) {
+    return (
+      <p className="text-center mt-12 text-red-600">
+        No menu data found for this link.
+      </p>
+    );
   }
 
   /* ─────────────  PARSE MENU  ───────────── */
@@ -108,7 +118,6 @@ export default function MenuPage() {
 
       <div className="menu-container min-h-screen bg-[#FAF8F4] px-4 sm:px-6 md:px-8 py-8 md:py-12">
         <div className="max-w-2xl mx-auto bg-white shadow-2xl rounded-2xl p-8 md:p-16 border border-[#C9B458] print:shadow-none print:border print:border-[#C9B458] print:rounded print:p-8">
-          {/* Header */}
           <header className="print-fixed-header text-center mb-6 md:mb-10">
             <h1 className="text-4xl md:text-5xl font-serif leading-tight text-gray-900">
               {restaurantName}
@@ -116,24 +125,26 @@ export default function MenuPage() {
             <div className="mt-1 h-1 w-20 md:w-24 bg-[#C9B458] mx-auto" />
           </header>
 
-          {/* Language picker (screen only) */}
-          <div className="print:hidden mb-6 md:mb-10 overflow-x-auto">
-            <div className="inline-flex whitespace-nowrap px-4 md:px-6 gap-2 md:gap-3">
-              {Object.keys(translations).map((lang) => (
-                <button
-                  key={lang}
-                  onClick={() => setCurrentLang(lang)}
-                  className={`px-3 md:px-4 py-1 md:py-2 text-xs md:text-sm font-semibold rounded-full border ${
-                    currentLang === lang
-                      ? "bg-[#C9B458] text-white border-[#C9B458]"
-                      : "bg-transparent text-gray-900 border-gray-300 hover:bg-gray-100"
-                  }`}
-                >
-                  {lang.toUpperCase()}
-                </button>
-              ))}
+          {/* Language picker */}
+          {Object.keys(translations).length > 1 && (
+            <div className="print:hidden mb-6 md:mb-10 overflow-x-auto">
+              <div className="inline-flex whitespace-nowrap px-4 md:px-6 gap-2 md:gap-3">
+                {Object.keys(translations).map((lang) => (
+                  <button
+                    key={lang}
+                    onClick={() => setCurrentLang(lang)}
+                    className={`px-3 md:px-4 py-1 md:py-2 text-xs md:text-sm font-semibold rounded-full border ${
+                      currentLang === lang
+                        ? "bg-[#C9B458] text-white border-[#C9B458]"
+                        : "bg-transparent text-gray-900 border-gray-300 hover:bg-gray-100"
+                    }`}
+                  >
+                    {lang.toUpperCase()}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Sections */}
           <div className="space-y-14 md:space-y-20">
@@ -147,7 +158,6 @@ export default function MenuPage() {
                 <ul className="space-y-5 md:space-y-6">
                   {items.map((item, idx) => (
                     <li key={idx} className="flex items-start gap-x-3 md:gap-x-4">
-                      {/* Name & desc */}
                       <div className="flex flex-col min-w-0">
                         <h3 className="font-serif text-lg md:text-xl uppercase tracking-wide text-gray-900 break-words">
                           {item.name}
@@ -158,14 +168,10 @@ export default function MenuPage() {
                           </p>
                         )}
                       </div>
-
-                      {/* Dotted leader */}
                       <span
                         aria-hidden="true"
                         className="flex-grow border-b border-dotted border-gray-300/40 translate-y-2 mx-2"
                       />
-
-                      {/* Price */}
                       <span className="font-serif text-lg md:text-xl text-gray-900 min-w-max">
                         {item.price}
                       </span>
@@ -178,7 +184,7 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* Global print rules */}
+      {/* Print rules */}
       <style jsx global>{`
         .print-fixed-header {
           page-break-after: avoid;
@@ -202,4 +208,3 @@ export default function MenuPage() {
     </>
   );
 }
-
