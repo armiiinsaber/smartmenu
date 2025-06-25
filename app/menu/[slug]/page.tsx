@@ -2,7 +2,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
 
+/* ───────────  SUPABASE PUBLIC CLIENT  ─────────── */
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPA_URL!,
+  process.env.NEXT_PUBLIC_SUPA_ANON!
+);
+
+/* ───────────  TYPES  ─────────── */
 type TranslationsMap = Record<string, string>;
 interface MenuEntry {
   category: string;
@@ -12,27 +20,46 @@ interface MenuEntry {
 }
 
 export default function MenuPage() {
-  /* ─────────────────────  DATA LOAD  ───────────────────── */
+  /* ───────────  STATE  ─────────── */
   const { slug } = useParams() as { slug: string };
   const [restaurantName, setRestaurantName] = useState("");
   const [translations, setTranslations] = useState<TranslationsMap>({});
   const [currentLang, setCurrentLang] = useState("");
 
+  /* ───────────  LOAD DATA  ─────────── */
   useEffect(() => {
     if (!slug) return;
-    const stored = sessionStorage.getItem(`menu-${slug}`);
-    if (stored) {
-      const { restaurantName, translations } = JSON.parse(stored) as {
-        restaurantName: string;
-        translations: TranslationsMap;
-      };
-      setRestaurantName(restaurantName);
-      setTranslations(translations);
-      setCurrentLang(Object.keys(translations)[0] || "");
-    }
+
+    (async () => {
+      /* 1️⃣  try Supabase (any device) */
+      const { data } = await supabase
+        .from("menus")
+        .select("*")
+        .eq("slug", slug.toLowerCase())
+        .single();
+
+      if (data) {
+        setRestaurantName(data.restaurant_name ?? data.name ?? "");
+        setTranslations(data.translations as TranslationsMap);
+        setCurrentLang(Object.keys(data.translations)[0] || "");
+        return;
+      }
+
+      /* 2️⃣  fallback for builder preview */
+      const stored = sessionStorage.getItem(`menu-${slug}`);
+      if (stored) {
+        const { restaurantName, translations } = JSON.parse(stored) as {
+          restaurantName: string;
+          translations: TranslationsMap;
+        };
+        setRestaurantName(restaurantName);
+        setTranslations(translations);
+        setCurrentLang(Object.keys(translations)[0] || "");
+      }
+    })();
   }, [slug]);
 
-  /* ─────────────────────  PDF BUTTON  ───────────────────── */
+  /* ───────────  PDF BUTTON  ─────────── */
   const handlePrint = useCallback(() => {
     if (!slug) return;
     window.location.href = `/api/pdf/${slug}`;
@@ -42,7 +69,7 @@ export default function MenuPage() {
     return <p className="text-center mt-12 text-gray-600">Loading menu…</p>;
   }
 
-  /* ─────────────────────  PARSE MENU  ───────────────────── */
+  /* ───────────  PARSE MENU  ─────────── */
   const rows = translations[currentLang]
     .trim()
     .split("\n")
@@ -61,7 +88,7 @@ export default function MenuPage() {
     return acc;
   }, {});
 
-  /* ─────────────────────  RENDER  ───────────────────── */
+  /* ───────────  RENDER  ─────────── */
   return (
     <>
       {/* Download PDF */}
@@ -115,7 +142,7 @@ export default function MenuPage() {
                 <ul className="space-y-5 md:space-y-6">
                   {items.map((item, idx) => (
                     <li key={idx} className="flex items-start gap-x-3 md:gap-x-4">
-                      {/* Name & desc – wrap safely inside frame */}
+                      {/* Name & desc */}
                       <div className="flex flex-col min-w-0">
                         <h3 className="font-serif text-lg md:text-xl uppercase tracking-wide text-gray-900 break-words">
                           {item.name}
