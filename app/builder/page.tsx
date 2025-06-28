@@ -4,24 +4,26 @@ import { useState } from "react";
 import Papa from "papaparse";
 import { v4 as uuid } from "uuid";
 
-/* ─────────────  TYPES  ───────────── */
+/* ───────────  TYPES  ─────────── */
+type CsvRow = [string, string, string, string]; // Cat | Dish | Desc | Price
 type TranslationsMap = Record<string, string>;
 
 export default function BuilderPage() {
-  const [csv, setCsv] = useState("");
+  const [csvText, setCsvText] = useState("");
   const [restaurantName, setRestaurantName] = useState("");
   const [translations, setTranslations] = useState<TranslationsMap | null>(null);
   const [slug, setSlug] = useState("");
 
-  /* ─── CSV → translations map (same behaviour as old version) ─── */
-  const parseCsv = () => {
-    const { data } = Papa.parse<string[]>(csv.trim(), {
+  /* ─── Parse CSV exactly like original builder ─── */
+  const handleParse = () => {
+    const { data } = Papa.parse<CsvRow>(csvText.trim(), {
       delimiter: "|",
       skipEmptyLines: true
     });
 
-    const en = (data as string[][])
-      .map((row) => row.map((c) => c.trim()).join(" | "))
+    /* join rows back into the pipe-format string */
+    const en = data
+      .map((row) => row.map((c) => c.trim()).join("|"))
       .join("\n");
 
     setTranslations({ en });
@@ -31,16 +33,16 @@ export default function BuilderPage() {
   const handleGenerate = async () => {
     if (!translations) return;
 
-    const newSlug = uuid().slice(0, 6);
+    const newSlug = uuid().slice(0, 6); // e.g. “ywmsb1”
     setSlug(newSlug);
 
-    /* store locally for preview */
+    /* keep local preview behaviour */
     sessionStorage.setItem(
       `menu-${newSlug}`,
       JSON.stringify({ restaurantName, translations })
     );
 
-    /* upsert via backend */
+    /* call backend to upsert */
     await fetch("/api/save-menu", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -50,60 +52,62 @@ export default function BuilderPage() {
         translations
       })
     });
+
+    alert(`Menu saved!\nLink: /menu/${newSlug}`);
   };
 
-  /* ───  UI (same tailwind classes you had) ─── */
+  /* ─── UI — same classes you had before ─── */
   return (
-    <div className="min-h-screen bg-[#FAF8F4] px-4 py-10">
-      <div className="max-w-2xl mx-auto bg-white shadow-xl rounded-2xl p-8 md:p-12 border border-[#C9B458]">
-        <h1 className="text-3xl font-serif mb-6 text-center">Menu Builder</h1>
+    <div className="p-10 max-w-xl mx-auto font-sans text-gray-800">
+      <h1 className="text-3xl font-bold mb-6">Menu Builder</h1>
 
-        {/* Restaurant name */}
-        <label className="block font-semibold mb-1">Restaurant name</label>
-        <input
-          className="w-full border rounded px-3 py-2 mb-6"
-          placeholder="KIRI"
-          value={restaurantName}
-          onChange={(e) => setRestaurantName(e.target.value)}
-        />
+      <label className="font-semibold block mb-1">Restaurant name</label>
+      <input
+        className="w-full border rounded px-3 py-2 mb-4"
+        value={restaurantName}
+        onChange={(e) => setRestaurantName(e.target.value)}
+        placeholder="KIRI"
+      />
 
-        {/* CSV textarea */}
-        <label className="block font-semibold mb-1">
-          CSV &nbsp;
-          <span className="text-xs text-gray-500">
-            (Category|Dish|Desc|Price per line)
-          </span>
-        </label>
-        <textarea
-          className="w-full h-48 border rounded px-3 py-2 mb-4 font-mono text-sm"
-          placeholder="Starters|Salad|Fresh greens|12"
-          value={csv}
-          onChange={(e) => setCsv(e.target.value)}
-        />
+      <label className="font-semibold block mb-1">
+        CSV — Category|Dish|Description|Price
+      </label>
+      <textarea
+        className="w-full h-40 border rounded px-3 py-2 mb-4 resize-none"
+        value={csvText}
+        onChange={(e) => setCsvText(e.target.value)}
+        placeholder="Starters|Salad|Fresh greens|12"
+      />
 
+      <button
+        onClick={handleParse}
+        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 mr-3"
+      >
+        Parse CSV
+      </button>
+
+      {translations && (
         <button
-          className="px-4 py-2 bg-blue-600 text-white rounded mr-3"
-          onClick={parseCsv}
+          onClick={handleGenerate}
+          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
         >
-          Parse CSV
+          Generate &amp; Save
         </button>
+      )}
 
-        {translations && (
-          <button
-            className="px-4 py-2 bg-green-600 text-white rounded"
-            onClick={handleGenerate}
+      {slug && (
+        <p className="mt-6">
+          Live link:&nbsp;
+          <a
+            href={`/menu/${slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-blue-600 underline"
           >
-            Generate link
-          </button>
-        )}
-
-        {slug && (
-          <p className="mt-6 text-center">
-            Live link:&nbsp;
-            <a
-              href={`/menu/${slug}`}
-              target="_blank"
-              rel="noreferrer"
-              className="text-blue-600 underline break-all"
-            >
-              {`${window.locati
+            /menu/{slug}
+          </a>
+        </p>
+      )}
+    </div>
+  );
+}
