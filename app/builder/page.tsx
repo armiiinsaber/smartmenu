@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 export default function BuilderPage() {
@@ -11,14 +11,27 @@ export default function BuilderPage() {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const languages = ["en","es","fr","de","it","pt","zh","ja","ko","ru"];
+  const languages = [
+    "en",
+    "es",
+    "fr",
+    "de",
+    "it",
+    "pt",
+    "zh",
+    "ja",
+    "ko",
+    "ru",
+  ];
 
+  /* toggle language chip */
   function toggleLang(lang: string) {
     setSelectedLangs((prev) =>
       prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
     );
   }
 
+  /* read uploaded file */
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -27,6 +40,7 @@ export default function BuilderPage() {
     reader.readAsText(file);
   }
 
+  /* main submit */
   async function handleSubmit() {
     if (!restaurantName || !rawText || selectedLangs.length === 0) {
       alert(
@@ -34,13 +48,16 @@ export default function BuilderPage() {
       );
       return;
     }
-    // simple 4-column validation
-    const lines = rawText.split("\n").map((l) => l.trim()).filter(Boolean);
+
+    /* quick 4-column validation */
+    const lines = rawText
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].split("|").length !== 4) {
-        alert(
-          `Line ${i + 1} invalid. Use Category|Dish|Description|Price.`
-        );
+        alert(`Line ${i + 1} invalid. Use Category|Dish|Description|Price.`);
         return;
       }
     }
@@ -56,12 +73,15 @@ export default function BuilderPage() {
           languages: selectedLangs,
         }),
       });
+
       const payload = await res.json();
       if (!res.ok) {
         alert(`Error ${res.status}: ${payload.error}`);
         setLoading(false);
         return;
       }
+
+      /* cache for preview */
       sessionStorage.setItem(
         `menu-${payload.slug}`,
         JSON.stringify({
@@ -69,6 +89,18 @@ export default function BuilderPage() {
           translations: payload.translations,
         })
       );
+
+      /* 🔗 NEW: persist to Supabase so link is live for guests */
+      await fetch("/api/save-menu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug: payload.slug,
+          restaurant_name: restaurantName,
+          translations: payload.translations,
+        }),
+      });
+
       router.push(`/menu/${payload.slug}`);
     } catch (e: any) {
       alert(`Network error: ${e.message}`);
@@ -76,8 +108,8 @@ export default function BuilderPage() {
     }
   }
 
-  // Staggered animation delays
-  const delays = ["100ms","200ms","300ms","400ms","500ms"];
+  /* staggered animation delays */
+  const delays = ["100ms", "200ms", "300ms", "400ms", "500ms"];
 
   return (
     <div
@@ -120,13 +152,12 @@ export default function BuilderPage() {
           </div>
 
           {/* 2) Menu Text */}
-          <div
-            className="fade-in-up"
-            style={{ animationDelay: delays[1] }}
-          >
-            <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2 pb-1 transition-all duration-300 group-focus-within:border-b-2 group-focus-within:border-[#C9B458]">
+          <div className="fade-in-up" style={{ animationDelay: delays[1] }}>
+            <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2 pb-1">
               Paste menu text{" "}
-              <span className="font-semibold">(Category|Dish|Description|Price)</span>
+              <span className="font-semibold">
+                (Category|Dish|Description|Price)
+              </span>
             </label>
             <textarea
               value={rawText}
@@ -139,10 +170,7 @@ export default function BuilderPage() {
           </div>
 
           {/* 3) File Upload */}
-          <div
-            className="fade-in-up"
-            style={{ animationDelay: delays[2] }}
-          >
+          <div className="fade-in-up" style={{ animationDelay: delays[2] }}>
             <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2">
               Or upload file
             </label>
@@ -157,10 +185,7 @@ export default function BuilderPage() {
           </div>
 
           {/* 4) Language Selector */}
-          <div
-            className="fade-in-up"
-            style={{ animationDelay: delays[3] }}
-          >
+          <div className="fade-in-up" style={{ animationDelay: delays[3] }}>
             <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2">
               Your Guests Speak
             </label>
@@ -206,19 +231,30 @@ export default function BuilderPage() {
       {/* Global Styles for animations */}
       <style jsx global>{`
         @keyframes gradientShift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0% 50%;
+          }
         }
         @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
         .fade-in-up {
           opacity: 0;
           animation: fadeInUp 0.6s ease forwards;
         }
-        /* Stagger delays set inline */
       `}</style>
     </div>
   );
