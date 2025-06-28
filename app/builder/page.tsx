@@ -1,113 +1,225 @@
 "use client";
 
-import { useState } from "react";
-import Papa from "papaparse";
-import { v4 as uuid } from "uuid";
-
-/* ───────────  TYPES  ─────────── */
-type CsvRow = [string, string, string, string]; // Cat | Dish | Desc | Price
-type TranslationsMap = Record<string, string>;
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function BuilderPage() {
-  const [csvText, setCsvText] = useState("");
+  const router = useRouter();
   const [restaurantName, setRestaurantName] = useState("");
-  const [translations, setTranslations] = useState<TranslationsMap | null>(null);
-  const [slug, setSlug] = useState("");
+  const [rawText, setRawText] = useState("");
+  const [selectedLangs, setSelectedLangs] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  /* ─── Parse CSV exactly like original builder ─── */
-  const handleParse = () => {
-    const { data } = Papa.parse<CsvRow>(csvText.trim(), {
-      delimiter: "|",
-      skipEmptyLines: true
-    });
+  const languages = ["en","es","fr","de","it","pt","zh","ja","ko","ru"];
 
-    /* join rows back into the pipe-format string */
-    const en = data
-      .map((row) => row.map((c) => c.trim()).join("|"))
-      .join("\n");
-
-    setTranslations({ en });
-  };
-
-  /* ─── Generate link + save to Supabase ─── */
-  const handleGenerate = async () => {
-    if (!translations) return;
-
-    const newSlug = uuid().slice(0, 6); // e.g. “ywmsb1”
-    setSlug(newSlug);
-
-    /* keep local preview behaviour */
-    sessionStorage.setItem(
-      `menu-${newSlug}`,
-      JSON.stringify({ restaurantName, translations })
+  function toggleLang(lang: string) {
+    setSelectedLangs((prev) =>
+      prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
     );
+  }
 
-    /* call backend to upsert */
-    await fetch("/api/save-menu", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        slug: newSlug,
-        restaurant_name: restaurantName,
-        translations
-      })
-    });
+  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setRawText(reader.result as string);
+    reader.readAsText(file);
+  }
 
-    alert(`Menu saved!\nLink: /menu/${newSlug}`);
-  };
+  async function handleSubmit() {
+    if (!restaurantName || !rawText || selectedLangs.length === 0) {
+      alert(
+        "Please fill out restaurant name, menu text, and select at least one language."
+      );
+      return;
+    }
+    // simple 4-column validation
+    const lines = rawText.split("\n").map((l) => l.trim()).filter(Boolean);
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].split("|").length !== 4) {
+        alert(
+          `Line ${i + 1} invalid. Use Category|Dish|Description|Price.`
+        );
+        return;
+      }
+    }
 
-  /* ─── UI — same classes you had before ─── */
+    setLoading(true);
+    try {
+      const res = await fetch("/api/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          restaurantName,
+          text: rawText,
+          languages: selectedLangs,
+        }),
+      });
+      const payload = await res.json();
+      if (!res.ok) {
+        alert(`Error ${res.status}: ${payload.error}`);
+        setLoading(false);
+        return;
+      }
+      sessionStorage.setItem(
+        `menu-${payload.slug}`,
+        JSON.stringify({
+          restaurantName: payload.restaurantName,
+          translations: payload.translations,
+        })
+      );
+      router.push(`/menu/${payload.slug}`);
+    } catch (e: any) {
+      alert(`Network error: ${e.message}`);
+      setLoading(false);
+    }
+  }
+
+  // Staggered animation delays
+  const delays = ["100ms","200ms","300ms","400ms","500ms"];
+
   return (
-    <div className="p-10 max-w-xl mx-auto font-sans text-gray-800">
-      <h1 className="text-3xl font-bold mb-6">Menu Builder</h1>
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        background:
+          "linear-gradient(130deg, #FAF8F4 0%, #F5F1EC 50%, #FAF8F4 100%)",
+        backgroundSize: "200% 200%",
+        animation: "gradientShift 10s ease infinite",
+      }}
+    >
+      <div className="w-full max-w-xl bg-white bg-opacity-60 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
+        <h1 className="text-4xl font-serif text-center text-gray-900 mb-6">
+          Acarte
+        </h1>
 
-      <label className="font-semibold block mb-1">Restaurant name</label>
-      <input
-        className="w-full border rounded px-3 py-2 mb-4"
-        value={restaurantName}
-        onChange={(e) => setRestaurantName(e.target.value)}
-        placeholder="KIRI"
-      />
-
-      <label className="font-semibold block mb-1">
-        CSV — Category|Dish|Description|Price
-      </label>
-      <textarea
-        className="w-full h-40 border rounded px-3 py-2 mb-4 resize-none"
-        value={csvText}
-        onChange={(e) => setCsvText(e.target.value)}
-        placeholder="Starters|Salad|Fresh greens|12"
-      />
-
-      <button
-        onClick={handleParse}
-        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 mr-3"
-      >
-        Parse CSV
-      </button>
-
-      {translations && (
-        <button
-          onClick={handleGenerate}
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+          className="space-y-6"
         >
-          Generate &amp; Save
-        </button>
-      )}
-
-      {slug && (
-        <p className="mt-6">
-          Live link:&nbsp;
-          <a
-            href={`/menu/${slug}`}
-            target="_blank"
-            rel="noreferrer"
-            className="text-blue-600 underline"
+          {/* 1) Restaurant Name */}
+          <div
+            className="group fade-in-up"
+            style={{ animationDelay: delays[0] }}
           >
-            /menu/{slug}
-          </a>
-        </p>
-      )}
+            <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2 pb-1 transition-all duration-300 group-focus-within:border-b-2 group-focus-within:border-[#C9B458]">
+              Restaurant Name
+            </label>
+            <input
+              type="text"
+              value={restaurantName}
+              onChange={(e) => setRestaurantName(e.target.value)}
+              placeholder="e.g. Cipriani"
+              disabled={loading}
+              className="w-full bg-transparent border-b-2 border-gray-300 py-2 focus:border-[#C9B458] outline-none transition-colors duration-300"
+            />
+          </div>
+
+          {/* 2) Menu Text */}
+          <div
+            className="fade-in-up"
+            style={{ animationDelay: delays[1] }}
+          >
+            <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2 pb-1 transition-all duration-300 group-focus-within:border-b-2 group-focus-within:border-[#C9B458]">
+              Paste menu text{" "}
+              <span className="font-semibold">(Category|Dish|Description|Price)</span>
+            </label>
+            <textarea
+              value={rawText}
+              onChange={(e) => setRawText(e.target.value)}
+              rows={6}
+              placeholder="Antipasti|Pappa al Pomodoro|Traditional Tuscan tomato and bread soup|$22"
+              disabled={loading}
+              className="w-full bg-transparent border-b-2 border-gray-300 py-2 focus:border-[#C9B458] outline-none transition-colors duration-300"
+            />
+          </div>
+
+          {/* 3) File Upload */}
+          <div
+            className="fade-in-up"
+            style={{ animationDelay: delays[2] }}
+          >
+            <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2">
+              Or upload file
+            </label>
+            <input
+              type="file"
+              accept=".txt,.csv"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              disabled={loading}
+              className="text-gray-700"
+            />
+          </div>
+
+          {/* 4) Language Selector */}
+          <div
+            className="fade-in-up"
+            style={{ animationDelay: delays[3] }}
+          >
+            <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2">
+              Your Guests Speak
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {languages.map((lang) => (
+                <button
+                  key={lang}
+                  type="button"
+                  onClick={() => toggleLang(lang)}
+                  disabled={loading}
+                  className={`px-3 py-1 rounded-full text-sm font-medium border transition ${
+                    selectedLangs.includes(lang)
+                      ? "bg-[#C9B458] text-white border-[#C9B458]"
+                      : "bg-white text-gray-800 border-gray-300 hover:bg-gray-100"
+                  }`}
+                >
+                  {lang.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 5) Submit */}
+          <div
+            className="text-center fade-in-up"
+            style={{ animationDelay: delays[4] }}
+          >
+            <button
+              type="submit"
+              disabled={loading}
+              className={`mt-4 px-8 py-3 rounded-full font-semibold transition transform duration-200 ${
+                loading
+                  ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                  : "bg-[#C9B458] text-white hover:scale-105 hover:shadow-lg"
+              }`}
+            >
+              {loading ? "Generating…" : "Generate Menu"}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Global Styles for animations */}
+      <style jsx global>{`
+        @keyframes gradientShift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in-up {
+          opacity: 0;
+          animation: fadeInUp 0.6s ease forwards;
+        }
+        /* Stagger delays set inline */
+      `}</style>
     </div>
   );
 }
