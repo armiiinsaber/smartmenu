@@ -12,26 +12,18 @@ export default function BuilderPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const languages = [
-    "en",
-    "es",
-    "fr",
-    "de",
-    "it",
-    "pt",
-    "zh",
-    "ja",
-    "ko",
-    "ru",
+    "en", "es", "fr", "de", "it",
+    "pt", "zh", "ja", "ko", "ru"
   ];
 
-  /* toggle language chip */
+  /* ───────── helpers ───────── */
+
   function toggleLang(lang: string) {
-    setSelectedLangs((prev) =>
-      prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
+    setSelectedLangs(prev =>
+      prev.includes(lang) ? prev.filter(l => l !== lang) : [...prev, lang]
     );
   }
 
-  /* read uploaded file */
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -40,31 +32,27 @@ export default function BuilderPage() {
     reader.readAsText(file);
   }
 
-  /* main submit */
+  /* ───────── submit ───────── */
+
   async function handleSubmit() {
     if (!restaurantName || !rawText || selectedLangs.length === 0) {
-      alert(
-        "Please fill out restaurant name, menu text, and select at least one language."
-      );
+      alert("Fill restaurant name, menu text, and pick at least one language.");
       return;
     }
 
-    /* quick 4-column validation */
-    const lines = rawText
-      .split("\n")
-      .map((l) => l.trim())
-      .filter(Boolean);
-
+    /* 4-column sanity check */
+    const lines = rawText.split("\n").map(l => l.trim()).filter(Boolean);
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].split("|").length !== 4) {
-        alert(`Line ${i + 1} invalid. Use Category|Dish|Description|Price.`);
+        alert(`Line ${i + 1} invalid. Use Category|Dish|Description|Price`);
         return;
       }
     }
 
     setLoading(true);
     try {
-      const res = await fetch("/api/translate", {
+      /* 1️⃣  translate */
+      const tr = await fetch("/api/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -73,43 +61,46 @@ export default function BuilderPage() {
           languages: selectedLangs,
         }),
       });
+      const payload = await tr.json();
+      if (!tr.ok) throw new Error(payload.error || "translate failed");
 
-      const payload = await res.json();
-      if (!res.ok) {
-        alert(`Error ${res.status}: ${payload.error}`);
-        setLoading(false);
-        return;
-      }
-
-      /* cache for preview */
-      sessionStorage.setItem(
-        `menu-${payload.slug}`,
-        JSON.stringify({
-          restaurantName: payload.restaurantName,
-          translations: payload.translations,
-        })
-      );
-
-      /* 🔗 NEW: persist to Supabase so link is live for guests */
-      await fetch("/api/save-menu", {
+      /* 2️⃣  save row for guests */
+      const save = await fetch("/api/save-menu", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           slug: payload.slug,
-          restaurant_name: restaurantName,
+          restaurant_nar: restaurantName,   // ← if your column is restaurant_name, rename here
           translations: payload.translations,
         }),
       });
+      if (!save.ok) {
+        const err = await save.json();
+        throw new Error(err.error || "save failed");
+      }
 
+      /* 3️⃣  cache locally for instant preview */
+      sessionStorage.setItem(
+        `menu-${payload.slug}`,
+        JSON.stringify({
+          restaurantName,
+          translations: payload.translations,
+        })
+      );
+
+      /* 4️⃣  go to live menu */
       router.push(`/menu/${payload.slug}`);
     } catch (e: any) {
-      alert(`Network error: ${e.message}`);
+      alert(e.message);
+    } finally {
       setLoading(false);
     }
   }
 
-  /* staggered animation delays */
+  /* staggered fade-in delays */
   const delays = ["100ms", "200ms", "300ms", "400ms", "500ms"];
+
+  /* ───────── render ───────── */
 
   return (
     <div
@@ -127,49 +118,44 @@ export default function BuilderPage() {
         </h1>
 
         <form
-          onSubmit={(e) => {
+          onSubmit={e => {
             e.preventDefault();
             handleSubmit();
           }}
           className="space-y-6"
         >
-          {/* 1) Restaurant Name */}
-          <div
-            className="group fade-in-up"
-            style={{ animationDelay: delays[0] }}
-          >
-            <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2 pb-1 transition-all duration-300 group-focus-within:border-b-2 group-focus-within:border-[#C9B458]">
+          {/* 1) Name */}
+          <div className="group fade-in-up" style={{ animationDelay: delays[0] }}>
+            <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2 pb-1">
               Restaurant Name
             </label>
             <input
               type="text"
               value={restaurantName}
-              onChange={(e) => setRestaurantName(e.target.value)}
+              onChange={e => setRestaurantName(e.target.value)}
               placeholder="e.g. Cipriani"
               disabled={loading}
-              className="w-full bg-transparent border-b-2 border-gray-300 py-2 focus:border-[#C9B458] outline-none transition-colors duration-300"
+              className="w-full bg-transparent border-b-2 border-gray-300 py-2 focus:border-[#C9B458] outline-none"
             />
           </div>
 
-          {/* 2) Menu Text */}
+          {/* 2) Text */}
           <div className="fade-in-up" style={{ animationDelay: delays[1] }}>
             <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2 pb-1">
               Paste menu text{" "}
-              <span className="font-semibold">
-                (Category|Dish|Description|Price)
-              </span>
+              <span className="font-semibold">(Category|Dish|Description|Price)</span>
             </label>
             <textarea
               value={rawText}
-              onChange={(e) => setRawText(e.target.value)}
+              onChange={e => setRawText(e.target.value)}
               rows={6}
               placeholder="Antipasti|Pappa al Pomodoro|Traditional Tuscan tomato and bread soup|$22"
               disabled={loading}
-              className="w-full bg-transparent border-b-2 border-gray-300 py-2 focus:border-[#C9B458] outline-none transition-colors duration-300"
+              className="w-full bg-transparent border-b-2 border-gray-300 py-2 focus:border-[#C9B458] outline-none"
             />
           </div>
 
-          {/* 3) File Upload */}
+          {/* 3) File */}
           <div className="fade-in-up" style={{ animationDelay: delays[2] }}>
             <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2">
               Or upload file
@@ -184,13 +170,13 @@ export default function BuilderPage() {
             />
           </div>
 
-          {/* 4) Language Selector */}
+          {/* 4) Languages */}
           <div className="fade-in-up" style={{ animationDelay: delays[3] }}>
             <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2">
               Your Guests Speak
             </label>
             <div className="flex flex-wrap gap-2">
-              {languages.map((lang) => (
+              {languages.map(lang => (
                 <button
                   key={lang}
                   type="button"
@@ -209,14 +195,11 @@ export default function BuilderPage() {
           </div>
 
           {/* 5) Submit */}
-          <div
-            className="text-center fade-in-up"
-            style={{ animationDelay: delays[4] }}
-          >
+          <div className="text-center fade-in-up" style={{ animationDelay: delays[4] }}>
             <button
               type="submit"
               disabled={loading}
-              className={`mt-4 px-8 py-3 rounded-full font-semibold transition transform duration-200 ${
+              className={`mt-4 px-8 py-3 rounded-full font-semibold transition ${
                 loading
                   ? "bg-gray-400 text-gray-200 cursor-not-allowed"
                   : "bg-[#C9B458] text-white hover:scale-105 hover:shadow-lg"
@@ -228,33 +211,18 @@ export default function BuilderPage() {
         </form>
       </div>
 
-      {/* Global Styles for animations */}
+      {/* animations */}
       <style jsx global>{`
         @keyframes gradientShift {
-          0% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-          100% {
-            background-position: 0% 50%;
-          }
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
         }
         @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-        .fade-in-up {
-          opacity: 0;
-          animation: fadeInUp 0.6s ease forwards;
-        }
+        .fade-in-up { opacity: 0; animation: fadeInUp 0.6s ease forwards; }
       `}</style>
     </div>
   );
