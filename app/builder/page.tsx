@@ -40,11 +40,13 @@ export default function BuilderPage() {
       return;
     }
 
-    /* 4-column sanity check */
+    /* 5-column sanity check */
     const lines = rawText.split("\n").map(l => l.trim()).filter(Boolean);
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].split("|").length !== 4) {
-        alert(`Line ${i + 1} invalid. Use Category|Dish|Description|Price`);
+      if (lines[i].split("|").length !== 5) {
+        alert(
+          `Line ${i + 1} is invalid.\nUse: Main Category|Category|Dish|Description|Price`
+        );
         return;
       }
     }
@@ -70,7 +72,7 @@ export default function BuilderPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           slug: payload.slug,
-          restaurant_nar: restaurantName,   // ← if your column is restaurant_name, rename here
+          restaurant_name: restaurantName, // <- match your column name
           translations: payload.translations,
         }),
       });
@@ -143,13 +145,15 @@ export default function BuilderPage() {
           <div className="fade-in-up" style={{ animationDelay: delays[1] }}>
             <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2 pb-1">
               Paste menu text{" "}
-              <span className="font-semibold">(Category|Dish|Description|Price)</span>
+              <span className="font-semibold">
+                (Main Cat|Category|Dish|Description|Price)
+              </span>
             </label>
             <textarea
               value={rawText}
               onChange={e => setRawText(e.target.value)}
               rows={6}
-              placeholder="Antipasti|Pappa al Pomodoro|Traditional Tuscan tomato and bread soup|$22"
+              placeholder="Drinks|Gins|Tanqueray|Classic juniper-forward|11"
               disabled={loading}
               className="w-full bg-transparent border-b-2 border-gray-300 py-2 focus:border-[#C9B458] outline-none"
             />
