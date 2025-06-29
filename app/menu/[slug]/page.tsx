@@ -14,7 +14,7 @@ const supabase =
       )
     : null;
 
-/* ───────────  LABELS (same 15 languages) ─────────── */
+/* ───────────  LABELS (15 languages) ─────────── */
 const LABELS: Record<string, string> = {
   en: "English",
   zh: "中文",
@@ -154,8 +154,7 @@ export default function MenuPage() {
 
   const grouped = entries.reduce<Record<string, Record<string, MenuEntry[]>>>(
     (acc, e) => {
-      if (!acc[e.mainCat]) acc[e.mainCat] = {};
-      if (!acc[e.mainCat][e.category]) acc[e.mainCat][e.category] = [];
+      (acc[e.mainCat] ||= {})[e.category] ||= [];
       acc[e.mainCat][e.category].push(e);
       return acc;
     },
@@ -244,4 +243,52 @@ export default function MenuPage() {
                       <li key={idx} className="flex items-start gap-4">
                         <div className="flex flex-col min-w-0">
                           <h3 className="font-serif text-lg uppercase tracking-wide text-gray-900 break-words">
-                            {item.n
+                            {item.name}
+                          </h3>
+                          {item.desc && (
+                            <p className="text-sm italic text-gray-700 break-words">
+                              {item.desc}
+                            </p>
+                          )}
+                        </div>
+                        <span
+                          aria-hidden="true"
+                          className="flex-grow border-b border-dotted border-gray-300/40 translate-y-2 mx-2"
+                        />
+                        <span className="font-serif text-lg text-gray-900 min-w-max">
+                          {item.price}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Print tweaks */}
+      <style jsx global>{`
+        .print-fixed-header {
+          page-break-after: avoid;
+          break-after: avoid-page;
+        }
+        @media print {
+          @page {
+            margin: 1.25in 1in;
+          }
+          body {
+            background: #ffffff !important;
+          }
+          .print\\:hidden {
+            display: none !important;
+          }
+          .menu-container {
+            background: #ffffff !important;
+          }
+        }
+      `}</style>
+    </>
+  );
+}
