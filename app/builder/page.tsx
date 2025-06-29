@@ -11,10 +11,19 @@ export default function BuilderPage() {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const languages = [
-    "en", "es", "fr", "de", "it",
-    "pt", "zh", "ja", "ko", "ru"
-  ];
+const LABELS: Record<string,string> = {
+  en:"English", fr:"Français", pa:"ਪੰਜਾਬੀ", hi:"हिन्दी", ur:"اردو",
+  ta:"தமிழ்", gu:"ગુજરાતી", bn:"বাংলা",
+  zh:"中文", yue:"粵語", ko:"한국어",
+  tl:"Filipino", vi:"Tiếng Việt", ml:"മലയാളം",
+  fa:"فارسی", ar:"العربية", tr:"Türkçe", ku:"Kurdî", ps:"پښتو",
+  es:"Español", pt:"Português",
+  it:"Italiano", el:"Ελληνικά", ru:"Русский", pl:"Polski", de:"Deutsch",
+  uk:"Українська", hu:"Magyar", ro:"Română",
+  he:"עברית", am:"አማርኛ", so:"Soomaali", ti:"ትግርኛ",
+  cs:"Čeština", sk:"Slovenčina"
+};
+
 
   /* ───────── helpers ───────── */
 
