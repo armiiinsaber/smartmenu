@@ -5,15 +5,15 @@ import type { ChatCompletionMessageParam } from "openai/resources/chat";
 
 const openai = new OpenAI();
 
-// split helper
+/* ───────── helpers ───────── */
+const generateSlug = () => Math.random().toString(36).slice(2, 8);
+const LINES_PER_CHUNK = 50; // ≤50 lines per GPT call = safe token usage
 const chunk = <T,>(arr: T[], size: number) =>
   Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
     arr.slice(i * size, i * size + size)
   );
 
-const generateSlug = () => Math.random().toString(36).slice(2, 8);
-const LINES_PER_CHUNK = 50; // keeps each GPT call well under token limits
-
+/* ───────── route ───────── */
 export async function POST(request: Request) {
   try {
     const { restaurantName, text, languages } = (await request.json()) as {
@@ -31,11 +31,19 @@ export async function POST(request: Request) {
 
     const slug = generateSlug();
     const translations: Record<string, string> = {};
-    const lines = text.trim().split(/\r?\n/);
-    const chunks = chunk(lines, LINES_PER_CHUNK);
+    const rawLines = text.trim().split(/\r?\n/);
+    const chunks = chunk(rawLines, LINES_PER_CHUNK);
+
+    /* ---- 1. keep EN untouched ---- */
+    if (languages.includes("en")) {
+      translations.en = text.trim(); // store original
+    }
+
+    /* ---- 2. translate all other languages ---- */
+    const langsToTranslate = languages.filter((l) => l !== "en");
 
     await Promise.all(
-      languages.map(async (lang) => {
+      langsToTranslate.map(async (lang) => {
         const translatedChunks: string[] = [];
 
         for (const subset of chunks) {
@@ -47,14 +55,13 @@ export async function POST(request: Request) {
               content: `
 You are an expert restaurant-menu translator.
 
-• Each line is:  MainCat | Category | Dish | Description | Price
-• Translate EVERY field EXCEPT the last Price.
-  – That includes MainCat and Category.
-• If MainCat repeats (e.g., "Spirits"), translate it CONSISTENTLY on every row.
-• Translate even UPPERCASE words; do not leave them in English unless they are proper names.
-• Keep the exact pipe layout (5 “|” per line) and preserve blank fields.
-• Return the lines in the original order with NO extra text.
-            `.trim(),
+• Each line:  MainCat | Category | Dish | Description | Price
+• Translate EVERY field except the final Price.
+• If MainCat repeats (e.g., "Spirits"), translate it CONSISTENTLY across rows.
+• Translate even UPPERCASE words; don't leave English unless it's a proper name.
+• Keep exactly five "|" per line and preserve blank fields (e.g., " |  |").
+• Return lines in the same order with NO extra text before or after.
+              `.trim(),
             },
             {
               role: "user",
