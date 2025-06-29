@@ -13,7 +13,7 @@ export default function BuilderPage() {
 
   /* ───────── language list & labels ───────── */
 
-  const languages = [
+  const languages: string[] = [
     "en", // English
     "zh", // Mandarin (Simplified)
     "yue", // Cantonese
@@ -29,7 +29,7 @@ export default function BuilderPage() {
     "ru", // Russian
     "el", // Greek
     "de", // German
-  ] as const;
+  ];
 
   const LABELS: Record<string, string> = {
     en: "English",
@@ -58,9 +58,8 @@ export default function BuilderPage() {
   }
 
   const allSelected = selectedLangs.length === languages.length;
-  function toggleAll() {
+  const toggleAll = () =>
     setSelectedLangs(allSelected ? [] : [...languages]);
-  }
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -70,7 +69,7 @@ export default function BuilderPage() {
     reader.readAsText(file);
   }
 
-  /* ───────── submit ───────── */
+  /* ───────── submit (unchanged) ───────── */
 
   async function handleSubmit() {
     if (!restaurantName || !rawText || selectedLangs.length === 0) {
@@ -91,7 +90,7 @@ export default function BuilderPage() {
 
     setLoading(true);
     try {
-      /* 1️⃣  translate */
+      /* translate */
       const tr = await fetch("/api/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -104,7 +103,7 @@ export default function BuilderPage() {
       const payload = await tr.json();
       if (!tr.ok) throw new Error(payload.error || "translate failed");
 
-      /* 2️⃣  save row */
+      /* save row */
       const save = await fetch("/api/save-menu", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -119,13 +118,13 @@ export default function BuilderPage() {
         throw new Error(err.error || "save failed");
       }
 
-      /* 3️⃣  cache locally */
+      /* cache locally */
       sessionStorage.setItem(
         `menu-${payload.slug}`,
         JSON.stringify({ restaurantName, translations: payload.translations })
       );
 
-      /* 4️⃣  open live page */
+      /* open live page */
       router.push(`/menu/${payload.slug}`);
     } catch (e: any) {
       alert(e.message);
@@ -162,7 +161,10 @@ export default function BuilderPage() {
           className="space-y-6"
         >
           {/* 1) Name */}
-          <div className="group fade-in-up" style={{ animationDelay: delays[0] }}>
+          <div
+            className="group fade-in-up"
+            style={{ animationDelay: delays[0] }}
+          >
             <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2 pb-1">
               Restaurant Name
             </label>
@@ -177,7 +179,10 @@ export default function BuilderPage() {
           </div>
 
           {/* 2) Menu text */}
-          <div className="fade-in-up" style={{ animationDelay: delays[1] }}>
+          <div
+            className="fade-in-up"
+            style={{ animationDelay: delays[1] }}
+          >
             <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2 pb-1">
               Paste menu text{" "}
               <span className="font-semibold">
@@ -195,7 +200,10 @@ export default function BuilderPage() {
           </div>
 
           {/* 3) File upload */}
-          <div className="fade-in-up" style={{ animationDelay: delays[2] }}>
+          <div
+            className="fade-in-up"
+            style={{ animationDelay: delays[2] }}
+          >
             <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2">
               Or upload file
             </label>
@@ -205,3 +213,99 @@ export default function BuilderPage() {
               ref={fileInputRef}
               onChange={handleFileUpload}
               disabled={loading}
+              className="text-gray-700"
+            />
+          </div>
+
+          {/* 4) Languages */}
+          <div
+            className="fade-in-up"
+            style={{ animationDelay: delays[3] }}
+          >
+            <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2">
+              Your Guests Speak
+            </label>
+            <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
+              {/* All / Clear button */}
+              <button
+                type="button"
+                onClick={toggleAll}
+                disabled={loading}
+                className={`px-3 py-1 rounded-full text-sm font-medium border transition ${
+                  allSelected
+                    ? "bg-[#C9B458] text-white border-[#C9B458]"
+                    : "bg-white text-gray-800 border-gray-300 hover:bg-gray-100"
+                }`}
+              >
+                {allSelected ? "Clear" : "All"}
+              </button>
+
+              {languages.map((lang) => (
+                <button
+                  key={lang}
+                  type="button"
+                  onClick={() => toggleLang(lang)}
+                  disabled={loading}
+                  className={`px-3 py-1 rounded-full text-sm font-medium border transition whitespace-nowrap ${
+                    selectedLangs.includes(lang)
+                      ? "bg-[#C9B458] text-white border-[#C9B458]"
+                      : "bg-white text-gray-800 border-gray-300 hover:bg-gray-100"
+                  }`}
+                >
+                  {LABELS[lang]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 5) Submit */}
+          <div
+            className="text-center fade-in-up"
+            style={{ animationDelay: delays[4] }}
+          >
+            <button
+              type="submit"
+              disabled={loading}
+              className={`mt-4 px-8 py-3 rounded-full font-semibold transition ${
+                loading
+                  ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                  : "bg-[#C9B458] text-white hover:scale-105 hover:shadow-lg"
+              }`}
+            >
+              {loading ? "Generating…" : "Generate Menu"}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* animations */}
+      <style jsx global>{`
+        @keyframes gradientShift {
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0% 50%;
+          }
+        }
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .fade-in-up {
+          opacity: 0;
+          animation: fadeInUp 0.6s ease forwards;
+        }
+      `}</style>
+    </div>
+  );
+}
