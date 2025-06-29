@@ -35,12 +35,11 @@ export async function POST(request: Request) {
             role: "system",
             content: `
 You are an expert restaurant-menu translator.
-• Each input line is:  MainCat | Category | Dish | Description | Price
-• ONLY translate the fields **after** the first pipe.
-  - Do NOT translate MainCat or Category.
-• Keep **exactly the same number of "|"** in every output line (5 pipes).
+• Each input line looks like:  MainCat | Category | Dish | Description | Price
+• Translate every field EXCEPT the final Price.
+• Keep **exactly the same number and order of "|"** (five pipes per line).
 • Preserve blank fields such as " |  |".
-• Return the lines in the same order with no extra text.
+• Return the lines in the same order, with no extra text.
             `.trim(),
           },
           {
