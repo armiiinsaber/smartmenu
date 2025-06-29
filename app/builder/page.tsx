@@ -11,19 +11,30 @@ export default function BuilderPage() {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-const LABELS: Record<string,string> = {
-  en:"English", fr:"Français", pa:"ਪੰਜਾਬੀ", hi:"हिन्दी", ur:"اردو",
-  ta:"தமிழ்", gu:"ગુજરાતી", bn:"বাংলা",
-  zh:"中文", yue:"粵語", ko:"한국어",
-  tl:"Filipino", vi:"Tiếng Việt", ml:"മലയാളം",
-  fa:"فارسی", ar:"العربية", tr:"Türkçe", ku:"Kurdî", ps:"پښتو",
-  es:"Español", pt:"Português",
-  it:"Italiano", el:"Ελληνικά", ru:"Русский", pl:"Polski", de:"Deutsch",
-  uk:"Українська", hu:"Magyar", ro:"Română",
-  he:"עברית", am:"አማርኛ", so:"Soomaali", ti:"ትግርኛ",
-  cs:"Čeština", sk:"Slovenčina"
-};
+  /* ───────── language list & labels ───────── */
 
+  const languages = [
+    "en","fr","pa","hi","ur","ta","gu","bn",
+    "zh","yue","ko",
+    "tl","vi","ml",
+    "fa","ar","tr","ku","ps",
+    "es","pt",
+    "it","el","ru","pl","de","uk","hu","ro",
+    "he","am","so","ti","cs","sk"
+  ] as const;
+
+  const LABELS: Record<string, string> = {
+    en:"English", fr:"Français", pa:"ਪੰਜਾਬੀ", hi:"हिन्दी", ur:"اردو",
+    ta:"தமிழ்", gu:"ગુજરાતી", bn:"বাংলা",
+    zh:"中文", yue:"粵語", ko:"한국어",
+    tl:"Filipino", vi:"Tiếng Việt", ml:"മലയാളം",
+    fa:"فارسی", ar:"العربية", tr:"Türkçe", ku:"Kurdî", ps:"پښتو",
+    es:"Español", pt:"Português",
+    it:"Italiano", el:"Ελληνικά", ru:"Русский", pl:"Polski", de:"Deutsch",
+    uk:"Українська", hu:"Magyar", ro:"Română",
+    he:"עברית", am:"አማርኛ", so:"Soomaali", ti:"ትግርኛ",
+    cs:"Čeština", sk:"Slovenčina"
+  };
 
   /* ───────── helpers ───────── */
 
@@ -81,7 +92,7 @@ const LABELS: Record<string,string> = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           slug: payload.slug,
-          restaurant_name: restaurantName, // <- match your column name
+          restaurant_name: restaurantName,
           translations: payload.translations,
         }),
       });
@@ -188,20 +199,20 @@ const LABELS: Record<string,string> = {
             <label className="block text-sm uppercase tracking-wider text-gray-600 mb-2">
               Your Guests Speak
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
               {languages.map(lang => (
                 <button
                   key={lang}
                   type="button"
                   onClick={() => toggleLang(lang)}
                   disabled={loading}
-                  className={`px-3 py-1 rounded-full text-sm font-medium border transition ${
+                  className={`px-3 py-1 rounded-full text-sm font-medium border transition whitespace-nowrap ${
                     selectedLangs.includes(lang)
                       ? "bg-[#C9B458] text-white border-[#C9B458]"
                       : "bg-white text-gray-800 border-gray-300 hover:bg-gray-100"
                   }`}
                 >
-                  {lang.toUpperCase()}
+                  {LABELS[lang] ?? lang.toUpperCase()}
                 </button>
               ))}
             </div>
