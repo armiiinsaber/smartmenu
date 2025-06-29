@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
-/* ───────────  SUPABASE PUBLIC CLIENT  ─────────── */
+/* ───────────  SUPABASE CLIENT  ─────────── */
 const supabase =
   process.env.NEXT_PUBLIC_SUPABASE_URL &&
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -14,43 +14,23 @@ const supabase =
       )
     : null;
 
-/* ───────────  LABELS MAP (for language buttons) ─────────── */
+/* ───────────  LABELS (same 15 languages) ─────────── */
 const LABELS: Record<string, string> = {
   en: "English",
-  fr: "Français",
-  pa: "ਪੰਜਾਬੀ",
-  hi: "हिन्दी",
-  ur: "اردو",
-  ta: "தமிழ்",
-  gu: "ગુજરાતી",
-  bn: "বাংলা",
   zh: "中文",
   yue: "粵語",
-  ko: "한국어",
-  tl: "Filipino",
-  vi: "Tiếng Việt",
-  ml: "മലയാളം",
-  fa: "فارسی",
-  ar: "العربية",
-  tr: "Türkçe",
-  ku: "Kurdî",
-  ps: "پښتو",
   es: "Español",
+  fr: "Français",
+  tl: "Filipino",
+  ar: "العربية",
+  ko: "한국어",
+  fa: "فارسی",
   pt: "Português",
-  it: "Italiano",
-  el: "Ελληνικά",
+  hi: "हिन्दी",
+  pa: "ਪੰਜਾਬੀ",
   ru: "Русский",
-  pl: "Polski",
+  el: "Ελληνικά",
   de: "Deutsch",
-  uk: "Українська",
-  hu: "Magyar",
-  ro: "Română",
-  he: "עברית",
-  am: "አማርኛ",
-  so: "Soomaali",
-  ti: "ትግርኛ",
-  cs: "Čeština",
-  sk: "Slovenčina",
 };
 
 /* ───────────  TYPES  ─────────── */
@@ -72,7 +52,7 @@ export default function MenuPage() {
   const [currentLang, setCurrentLang] = useState("");
   const [currentMain, setCurrentMain] = useState("");
 
-  /* ───────────  PICK FIRST MAIN CAT (always-present hook) ─────────── */
+  /* ───────────  PICK FIRST MAIN CAT ─────────── */
   useEffect(() => {
     if (
       !currentMain &&
@@ -80,21 +60,21 @@ export default function MenuPage() {
       currentLang &&
       typeof translations[currentLang] === "string"
     ) {
-      const firstLine = translations[currentLang]
+      const first = translations[currentLang]
         .trim()
         .split("\n")
-        .find(Boolean);
-      const firstMain = firstLine?.split("|")[0].trim() || "";
-      if (firstMain) setCurrentMain(firstMain);
+        .find(Boolean)
+        ?.split("|")[0]
+        .trim();
+      if (first) setCurrentMain(first);
     }
   }, [translations, currentLang, currentMain]);
 
-  /* ───────────  LOAD DATA  ─────────── */
+  /* ───────────  LOAD DATA ─────────── */
   useEffect(() => {
     if (!slug) return;
 
     (async () => {
-      /* 1️⃣  Supabase (if available) */
       if (supabase) {
         try {
           const { data } = await supabase
@@ -109,12 +89,9 @@ export default function MenuPage() {
             setCurrentLang(Object.keys(data.translations)[0] || "");
             return;
           }
-        } catch {
-          /* ignore – fallback below */
-        }
+        } catch {/* ignore */}
       }
 
-      /* 2️⃣  sessionStorage fallback (preview) */
       const cached = sessionStorage.getItem(`menu-${slug}`);
       if (cached) {
         const { restaurantName, translations } = JSON.parse(cached) as {
@@ -127,7 +104,6 @@ export default function MenuPage() {
         return;
       }
 
-      /* 3️⃣  No data */
       setRestaurantName("Menu unavailable");
       setTranslations({});
     })();
@@ -138,7 +114,7 @@ export default function MenuPage() {
     if (slug) window.location.href = `/api/pdf/${slug}`;
   }, [slug]);
 
-  /* ───────────  EARLY STATES  ─────────── */
+  /* ───────────  EARLY STATES ─────────── */
   if (restaurantName === null || translations === null) {
     return <p className="text-center mt-12 text-gray-600">Loading menu…</p>;
   }
@@ -176,7 +152,6 @@ export default function MenuPage() {
     })
   );
 
-  // Group entries → { mainCat: { category: MenuEntry[] } }
   const grouped = entries.reduce<Record<string, Record<string, MenuEntry[]>>>(
     (acc, e) => {
       if (!acc[e.mainCat]) acc[e.mainCat] = {};
@@ -269,52 +244,4 @@ export default function MenuPage() {
                       <li key={idx} className="flex items-start gap-4">
                         <div className="flex flex-col min-w-0">
                           <h3 className="font-serif text-lg uppercase tracking-wide text-gray-900 break-words">
-                            {item.name}
-                          </h3>
-                          {item.desc && (
-                            <p className="text-sm italic text-gray-700 break-words">
-                              {item.desc}
-                            </p>
-                          )}
-                        </div>
-                        <span
-                          aria-hidden="true"
-                          className="flex-grow border-b border-dotted border-gray-300/40 translate-y-2 mx-2"
-                        />
-                        <span className="font-serif text-lg text-gray-900 min-w-max">
-                          {item.price}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Print tweaks */}
-      <style jsx global>{`
-        .print-fixed-header {
-          page-break-after: avoid;
-          break-after: avoid-page;
-        }
-        @media print {
-          @page {
-            margin: 1.25in 1in;
-          }
-          body {
-            background: #ffffff !important;
-          }
-          .print\\:hidden {
-            display: none !important;
-          }
-          .menu-container {
-            background: #ffffff !important;
-          }
-        }
-      `}</style>
-    </>
-  );
-}
+                            {item.n
