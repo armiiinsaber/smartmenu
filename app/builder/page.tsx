@@ -44,6 +44,12 @@ export default function BuilderPage() {
     );
   }
 
+  const allSelected = selectedLangs.length === languages.length;
+
+  function toggleAll() {
+    setSelectedLangs(allSelected ? [] : [...languages]);
+  }
+
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -52,7 +58,7 @@ export default function BuilderPage() {
     reader.readAsText(file);
   }
 
-  /* ───────── submit ───────── */
+  /* ───────── submit (unchanged) ───────── */
 
   async function handleSubmit() {
     if (!restaurantName || !rawText || selectedLangs.length === 0) {
@@ -86,7 +92,7 @@ export default function BuilderPage() {
       const payload = await tr.json();
       if (!tr.ok) throw new Error(payload.error || "translate failed");
 
-      /* 2️⃣  save row for guests */
+      /* 2️⃣  save row */
       const save = await fetch("/api/save-menu", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -101,16 +107,13 @@ export default function BuilderPage() {
         throw new Error(err.error || "save failed");
       }
 
-      /* 3️⃣  cache locally for instant preview */
+      /* 3️⃣  cache locally */
       sessionStorage.setItem(
         `menu-${payload.slug}`,
-        JSON.stringify({
-          restaurantName,
-          translations: payload.translations,
-        })
+        JSON.stringify({ restaurantName, translations: payload.translations })
       );
 
-      /* 4️⃣  go to live menu */
+      /* 4️⃣  go live */
       router.push(`/menu/${payload.slug}`);
     } catch (e: any) {
       alert(e.message);
@@ -200,6 +203,20 @@ export default function BuilderPage() {
               Your Guests Speak
             </label>
             <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
+              {/* All button */}
+              <button
+                type="button"
+                onClick={toggleAll}
+                disabled={loading}
+                className={`px-3 py-1 rounded-full text-sm font-medium border transition ${
+                  allSelected
+                    ? "bg-[#C9B458] text-white border-[#C9B458]"
+                    : "bg-white text-gray-800 border-gray-300 hover:bg-gray-100"
+                }`}
+              >
+                {allSelected ? "Clear" : "All"}
+              </button>
+
               {languages.map(lang => (
                 <button
                   key={lang}
