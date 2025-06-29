@@ -20,7 +20,9 @@ const supabase =
 
 /* ───────────  TYPES  ─────────── */
 type TranslationsMap = Record<string, string>;
+
 interface MenuEntry {
+  mainCat: string;
   category: string;
   name: string;
   desc?: string;
@@ -33,6 +35,7 @@ export default function MenuPage() {
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
   const [translations, setTranslations] = useState<TranslationsMap | null>(null);
   const [currentLang, setCurrentLang] = useState("");
+  const [currentMain, setCurrentMain] = useState("");
 
   /* ───────────  LOAD DATA  ─────────── */
   useEffect(() => {
@@ -104,24 +107,40 @@ export default function MenuPage() {
     );
   }
 
-  /* ───────────  PARSE MENU  ─────────── */
+  /* ───────────  PARSE MENU  ───────────
+     Expected line format: MainCat | Category | Dish | Description | Price
+  */
   const rows = langValue
     .trim()
     .split("\n")
     .map((l) => l.split("|").map((c) => c.trim()))
-    .filter((p) => p.length >= 4);
+    .filter((p) => p.length >= 5);
 
-  const entries: MenuEntry[] = rows.map(([category, name, desc, price]) => ({
-    category,
-    name,
-    desc,
-    price,
-  }));
+  const entries: MenuEntry[] = rows.map(
+    ([mainCat, category, name, desc, price]) => ({
+      mainCat,
+      category,
+      name,
+      desc,
+      price,
+    })
+  );
 
-  const grouped = entries.reduce<Record<string, MenuEntry[]>>((acc, e) => {
-    (acc[e.category] = acc[e.category] || []).push(e);
-    return acc;
-  }, {});
+  // Grouping: { [mainCat]: { [category]: MenuEntry[] } }
+  const grouped = entries.reduce<Record<string, Record<string, MenuEntry[]>>>(
+    (acc, e) => {
+      if (!acc[e.mainCat]) acc[e.mainCat] = {};
+      if (!acc[e.mainCat][e.category]) acc[e.mainCat][e.category] = [];
+      acc[e.mainCat][e.category].push(e);
+      return acc;
+    },
+    {}
+  );
+
+  const mainCats = Object.keys(grouped);
+  useEffect(() => {
+    if (!currentMain && mainCats.length) setCurrentMain(mainCats[0]);
+  }, [mainCats, currentMain]);
 
   /* ───────────  RENDER  ─────────── */
   return (
@@ -167,40 +186,63 @@ export default function MenuPage() {
             </div>
           )}
 
+          {/* Main-category picker */}
+          {mainCats.length > 1 && (
+            <div className="print:hidden mb-8 overflow-x-auto">
+              <div className="inline-flex gap-3 px-6">
+                {mainCats.map((mc) => (
+                  <button
+                    key={mc}
+                    onClick={() => setCurrentMain(mc)}
+                    className={`px-4 py-1 text-sm font-semibold rounded-full border uppercase ${
+                      currentMain === mc
+                        ? "bg-gray-900 text-white border-gray-900"
+                        : "bg-transparent text-gray-900 border-gray-300 hover:bg-gray-100"
+                    }`}
+                  >
+                    {mc}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Sections */}
           <div className="space-y-14 md:space-y-20">
-            {Object.entries(grouped).map(([category, items]) => (
-              <section key={category}>
-                <h2 className="text-xl md:text-2xl font-serif uppercase tracking-wider text-center text-gray-900">
-                  {category}
-                </h2>
-                <div className="h-px bg-gray-300 opacity-20 my-4" />
+            {Object.entries(grouped[currentMain] || {}).map(
+              ([category, items]) => (
+                <section key={category}>
+                  <h2 className="text-xl md:text-2xl font-serif uppercase tracking-wider text-center text-gray-900">
+                    {category}
+                  </h2>
+                  <div className="h-px bg-gray-300 opacity-20 my-4" />
 
-                <ul className="space-y-6">
-                  {items.map((item, idx) => (
-                    <li key={idx} className="flex items-start gap-4">
-                      <div className="flex flex-col min-w-0">
-                        <h3 className="font-serif text-lg uppercase tracking-wide text-gray-900 break-words">
-                          {item.name}
-                        </h3>
-                        {item.desc && (
-                          <p className="text-sm italic text-gray-700 break-words">
-                            {item.desc}
-                          </p>
-                        )}
-                      </div>
-                      <span
-                        aria-hidden="true"
-                        className="flex-grow border-b border-dotted border-gray-300/40 translate-y-2 mx-2"
-                      />
-                      <span className="font-serif text-lg text-gray-900 min-w-max">
-                        {item.price}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))}
+                  <ul className="space-y-6">
+                    {items.map((item, idx) => (
+                      <li key={idx} className="flex items-start gap-4">
+                        <div className="flex flex-col min-w-0">
+                          <h3 className="font-serif text-lg uppercase tracking-wide text-gray-900 break-words">
+                            {item.name}
+                          </h3>
+                          {item.desc && (
+                            <p className="text-sm italic text-gray-700 break-words">
+                              {item.desc}
+                            </p>
+                          )}
+                        </div>
+                        <span
+                          aria-hidden="true"
+                          className="flex-grow border-b border-dotted border-gray-300/40 translate-y-2 mx-2"
+                        />
+                        <span className="font-serif text-lg text-gray-900 min-w-max">
+                          {item.price}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )
+            )}
           </div>
         </div>
       </div>
