@@ -4,11 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
-/* ───────────  SUPABASE PUBLIC CLIENT  ───────────
-   Uses the variable names you already have in Vercel:
-   • NEXT_PUBLIC_SUPABASE_URL
-   • NEXT_PUBLIC_SUPABASE_ANON_KEY
--------------------------------------------------- */
+/* ───────────  SUPABASE PUBLIC CLIENT  ─────────── */
 const supabase =
   process.env.NEXT_PUBLIC_SUPABASE_URL &&
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -17,6 +13,20 @@ const supabase =
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
       )
     : null;
+
+/* ───────────  LABELS MAP  ─────────── */
+const LABELS: Record<string, string> = {
+  en:"English", fr:"Français", pa:"ਪੰਜਾਬੀ", hi:"हिन्दी", ur:"اردو",
+  ta:"தமிழ்", gu:"ગુજરાતી", bn:"বাংলা",
+  zh:"中文", yue:"粵語", ko:"한국어",
+  tl:"Filipino", vi:"Tiếng Việt", ml:"മലയാളം",
+  fa:"فارسی", ar:"العربية", tr:"Türkçe", ku:"Kurdî", ps:"پښتو",
+  es:"Español", pt:"Português",
+  it:"Italiano", el:"Ελληνικά", ru:"Русский", pl:"Polski", de:"Deutsch",
+  uk:"Українська", hu:"Magyar", ro:"Română",
+  he:"עברית", am:"አማርኛ", so:"Soomaali", ti:"ትግርኛ",
+  cs:"Čeština", sk:"Slovenčina"
+};
 
 /* ───────────  TYPES  ─────────── */
 type TranslationsMap = Record<string, string>;
@@ -37,7 +47,7 @@ export default function MenuPage() {
   const [currentLang, setCurrentLang] = useState("");
   const [currentMain, setCurrentMain] = useState("");
 
-  /* ───────────  PICK FIRST MAIN CAT (always present hook)  ─────────── */
+  /* ───────────  PICK FIRST MAIN CAT  ─────────── */
   useEffect(() => {
     if (
       !currentMain &&
@@ -56,7 +66,6 @@ export default function MenuPage() {
     if (!slug) return;
 
     (async () => {
-      /* 1️⃣  Supabase (only if client exists) */
       if (supabase) {
         try {
           const { data } = await supabase
@@ -71,12 +80,9 @@ export default function MenuPage() {
             setCurrentLang(Object.keys(data.translations)[0] || "");
             return;
           }
-        } catch {
-          /* ignore – fall back */
-        }
+        } catch {/* ignore */}
       }
 
-      /* 2️⃣  sessionStorage fallback (builder preview) */
       const cached = sessionStorage.getItem(`menu-${slug}`);
       if (cached) {
         const { restaurantName, translations } = JSON.parse(cached) as {
@@ -89,7 +95,6 @@ export default function MenuPage() {
         return;
       }
 
-      /* 3️⃣  No data */
       setRestaurantName("Menu unavailable");
       setTranslations({});
     })();
@@ -121,9 +126,7 @@ export default function MenuPage() {
     );
   }
 
-  /* ───────────  PARSE MENU  ───────────
-     Expected line format: MainCat | Category | Dish | Description | Price
-  */
+  /* ───────────  PARSE MENU  ─────────── */
   const rows = langValue
     .trim()
     .split("\n")
@@ -140,7 +143,6 @@ export default function MenuPage() {
     })
   );
 
-  // Grouping: { [mainCat]: { [category]: MenuEntry[] } }
   const grouped = entries.reduce<Record<string, Record<string, MenuEntry[]>>>(
     (acc, e) => {
       if (!acc[e.mainCat]) acc[e.mainCat] = {};
@@ -190,7 +192,7 @@ export default function MenuPage() {
                         : "bg-transparent text-gray-900 border-gray-300 hover:bg-gray-100"
                     }`}
                   >
-                    {lang.toUpperCase()}
+                    {LABELS[lang] ?? lang.toUpperCase()}
                   </button>
                 ))}
               </div>
@@ -205,7 +207,7 @@ export default function MenuPage() {
                   <button
                     key={mc}
                     onClick={() => setCurrentMain(mc)}
-                    className={`px-4 py-1 text-sm font-semibold rounded-full border uppercase ${
+                    className={`px-4 py-1 text-sm font-semibold rounded-full border uppercase whitespace-nowrap ${
                       currentMain === mc
                         ? "bg-gray-900 text-white border-gray-900"
                         : "bg-transparent text-gray-900 border-gray-300 hover:bg-gray-100"
@@ -245,40 +247,4 @@ export default function MenuPage() {
                           aria-hidden="true"
                           className="flex-grow border-b border-dotted border-gray-300/40 translate-y-2 mx-2"
                         />
-                        <span className="font-serif text-lg text-gray-900 min-w-max">
-                          {item.price}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Print tweaks */}
-      <style jsx global>{`
-        .print-fixed-header {
-          page-break-after: avoid;
-          break-after: avoid-page;
-        }
-        @media print {
-          @page {
-            margin: 1.25in 1in;
-          }
-          body {
-            background: #ffffff !important;
-          }
-          .print\\:hidden {
-            display: none !important;
-          }
-          .menu-container {
-            background: #ffffff !important;
-          }
-        }
-      `}</style>
-    </>
-  );
-}
+                        <span className="font-serif text-lg text-gray-900 min
