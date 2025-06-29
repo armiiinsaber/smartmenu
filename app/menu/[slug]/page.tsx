@@ -37,6 +37,20 @@ export default function MenuPage() {
   const [currentLang, setCurrentLang] = useState("");
   const [currentMain, setCurrentMain] = useState("");
 
+  /* ───────────  PICK FIRST MAIN CAT (always present hook)  ─────────── */
+  useEffect(() => {
+    if (
+      !currentMain &&
+      translations &&
+      currentLang &&
+      typeof translations[currentLang] === "string"
+    ) {
+      const firstLine = translations[currentLang].trim().split("\n").find(Boolean);
+      const firstMain = firstLine?.split("|")[0].trim() || "";
+      if (firstMain) setCurrentMain(firstMain);
+    }
+  }, [translations, currentLang, currentMain]);
+
   /* ───────────  LOAD DATA  ─────────── */
   useEffect(() => {
     if (!slug) return;
@@ -138,9 +152,6 @@ export default function MenuPage() {
   );
 
   const mainCats = Object.keys(grouped);
-  useEffect(() => {
-    if (!currentMain && mainCats.length) setCurrentMain(mainCats[0]);
-  }, [mainCats, currentMain]);
 
   /* ───────────  RENDER  ─────────── */
   return (
